@@ -10,6 +10,14 @@ activityCompose = "1.10.1"
 composeBom = "2024.09.00"
 # ML Kit Document Scanner - versión beta más reciente
 mlkitDocumentScanner = "16.0.0-beta1"
+# Room Database
+room = "2.6.1"
+# KSP (Kotlin Symbol Processing)
+ksp = "2.0.21-1.0.28"
+# Navigation Compose
+navigationCompose = "2.7.7"
+# Coil para cargar imágenes
+coil = "2.6.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -28,9 +36,19 @@ androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 # ML Kit Document Scanner - biblioteca principal
 mlkit-document-scanner = { group = "com.google.android.gms", name = "play-services-mlkit-document-scanner", version.ref = "mlkitDocumentScanner" }
+# Room Database
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+# Navigation Compose
+navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+# Coil para cargar imágenes
+coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+# KSP Plugin
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 
