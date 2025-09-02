@@ -1,7 +1,6 @@
 package com.abdapps.scandocs
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
@@ -9,12 +8,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.abdapps.scandocs.data.database.AppDatabase
+import com.abdapps.scandocs.data.repository.DocumentRepository
+import com.abdapps.scandocs.service.FileService
 import com.abdapps.scandocs.ui.components.DocumentScannerScreen
+import com.abdapps.scandocs.ui.components.HistoryScreen
 import com.abdapps.scandocs.ui.theme.ScanDocsTheme
 
 /**
@@ -31,15 +34,25 @@ import com.abdapps.scandocs.ui.theme.ScanDocsTheme
  * - Generación automática de PDF
  * - Interfaz moderna con Material Design 3
  * - Manejo robusto de errores y estados
+ * - Historial de documentos escaneados
  */
 class MainActivity : androidx.fragment.app.FragmentActivity() {
     
     // ViewModel para manejar la lógica de negocio del escáner
-    private val scannerViewModel: ScannerViewModel by viewModels()
+    private lateinit var scannerViewModel: ScannerViewModel
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        // Inicializar dependencias
+        val database = AppDatabase.getDatabase(this)
+        val repository = DocumentRepository(database.documentDao())
+        val fileService = FileService(this)
+        
+        // Inicializar ViewModel con dependencias
+        val factory = ScannerViewModel.Factory(repository, fileService)
+        scannerViewModel = viewModels<ScannerViewModel> { factory }.value
         
         setContent {
             ScanDocsTheme {
@@ -81,6 +94,7 @@ class MainActivity : androidx.fragment.app.FragmentActivity() {
  * - Observa el estado del ViewModel
  * - Maneja los callbacks de la UI
  * - Proporciona la interfaz principal del usuario
+ * - Gestiona la navegación entre pantallas
  * 
  * @param modifier Modificador de Compose para la pantalla
  * @param scannerViewModel ViewModel que maneja la lógica del escáner
@@ -90,40 +104,33 @@ fun MainScreen(
     modifier: Modifier = Modifier,
     scannerViewModel: ScannerViewModel
 ) {
-    // Observar el estado de la UI desde el ViewModel
-    val uiState by scannerViewModel.uiState.collectAsState()
+    // Configurar navegación
+    val navController = rememberNavController()
     
-    // Observar el estado del escáner
-    val scannerState by scannerViewModel.scannerState.collectAsState()
-    
-    // Efecto para manejar la inicialización automática
-    LaunchedEffect(Unit) {
+    NavHost(
+        navController = navController,
+        startDestination = "scanner",
+        modifier = modifier
+    ) {
+        // Pantalla principal del escáner
+        composable("scanner") {
+            DocumentScannerScreen(
+                viewModel = scannerViewModel,
+                onNavigateToHistory = { navController.navigate("history") }
+            )
+        }
+        
+        // Pantalla de historial
+        composable("history") {
+            HistoryScreen(
+                viewModel = scannerViewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+    }
         // Este efecto se ejecuta una vez cuando se compone la pantalla
         // Puedes agregar lógica de inicialización adicional aquí si es necesario
     }
-    
-    // Pantalla principal del escáner
-    DocumentScannerScreen(
-        uiState = uiState,
-        scannerState = scannerState,
-        onStartScan = {
-            // Iniciar el proceso de escaneo
-            scannerViewModel.startScanning()
-        },
-        onClearResults = {
-            // Limpiar los resultados del escaneo
-            scannerViewModel.clearResults()
-        },
-        onClearError = {
-            // Limpiar mensajes de error
-            scannerViewModel.clearError()
-        },
-        onClearSuccess = {
-            // Limpiar mensajes de éxito
-            scannerViewModel.clearSuccess()
-        }
-    )
-}
 
 /**
  * Vista previa de la pantalla principal para desarrollo

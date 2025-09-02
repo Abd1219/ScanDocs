@@ -111,15 +111,18 @@ fun ScannerStatusCard(scannerState: ScannerState) {
                     ScannerState.IDLE -> "Inicializando..."
                     ScannerState.READY -> "Listo para escanear"
                     ScannerState.SCANNING -> "Escaneando documento..."
-                    ScannerState.COMPLETED -> "Escaneo completado"
+                    ScannerState.PROCESSING -> "Procesando documento..." // AÑADIDO
+                    ScannerState.SUCCESS -> "Escaneo exitoso"      // CAMBIADO de COMPLETED
                     ScannerState.ERROR -> "Error en el escáner"
                 },
                 color = when (scannerState) {
+                    ScannerState.IDLE -> MaterialTheme.colorScheme.onSurface // AÑADIDO
                     ScannerState.READY -> MaterialTheme.colorScheme.primary
                     ScannerState.SCANNING -> MaterialTheme.colorScheme.secondary
-                    ScannerState.COMPLETED -> MaterialTheme.colorScheme.tertiary
+                    ScannerState.PROCESSING -> MaterialTheme.colorScheme.secondary // AÑADIDO (puedes ajustar el color)
+                    ScannerState.SUCCESS -> MaterialTheme.colorScheme.primary    // CAMBIADO (puedes usar tertiary o un color verde)
                     ScannerState.ERROR -> MaterialTheme.colorScheme.error
-                    else -> MaterialTheme.colorScheme.onSurface
+                    // No se necesita 'else' si todos los casos están cubiertos explícitamente
                 }
             )
         }

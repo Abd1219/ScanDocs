@@ -1,212 +1,152 @@
 package com.abdapps.scandocs.service
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
+import android.webkit.MimeTypeMap
+import androidx.annotation.RequiresApi
 import androidx.core.content.FileProvider
-import com.abdapps.scandocs.data.entity.ScannedDocument
 import java.io.File
 import java.io.FileOutputStream
-import java.io.InputStream
+import java.io.IOException
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import javax.inject.Inject
-import javax.inject.Singleton
+import java.util.Locale // Added for Locale.ROOT
 
-/**
- * Servicio para manejo de archivos
- * 
- * Esta clase se encarga de:
- * - Crear archivos JPG y PDF
- * - Guardar archivos en almacenamiento externo
- * - Generar URIs para compartir archivos
- * - Manejar la organización de archivos
- * - Proporcionar acceso seguro a archivos
- */
-@Singleton
-class FileService @Inject constructor(
-    private val context: Context
-) {
-    
-    // Directorio principal para documentos escaneados
+class FileService(private val context: Context) {
+
     private val documentsDir = File(
         Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS),
-        "ScanDocs"
+        "ScanDocsApp" // Renamed to avoid potential conflicts
     )
-    
-    // Formato para nombres de archivo con timestamp
-    private val timestampFormatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
-    
+
+    // Ensure minSdk is 26+ or handle older APIs for these date/time features
+    @RequiresApi(Build.VERSION_CODES.O)
+    private val timestampFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
+
     init {
-        // Crear directorio si no existe
         if (!documentsDir.exists()) {
             documentsDir.mkdirs()
         }
     }
-    
-    /**
-     * Guarda un archivo JPG desde un URI
-     * 
-     * @param imageUri URI de la imagen original
-     * @param fileName Nombre personalizado del archivo
-     * @return Ruta del archivo guardado
-     */
-    suspend fun saveJpgFile(imageUri: Uri, fileName: String): String {
-        val timestamp = LocalDateTime.now().format(timestampFormatter)
-        val jpgFile = File(documentsDir, "${fileName}_${timestamp}.jpg")
-        
-        context.contentResolver.openInputStream(imageUri)?.use { inputStream ->
-            FileOutputStream(jpgFile).use { outputStream ->
-                inputStream.copyTo(outputStream)
-            }
-        }
-        
-        return jpgFile.absolutePath
-    }
-    
-    /**
-     * Guarda un archivo PDF desde un URI
-     * 
-     * @param pdfUri URI del PDF original
-     * @param fileName Nombre personalizado del archivo
-     * @return Ruta del archivo guardado
-     */
-    suspend fun savePdfFile(pdfUri: Uri, fileName: String): String {
-        val timestamp = LocalDateTime.now().format(timestampFormatter)
-        val pdfFile = File(documentsDir, "${fileName}_${timestamp}.pdf")
-        
-        context.contentResolver.openInputStream(pdfUri)?.use { inputStream ->
-            FileOutputStream(pdfFile).use { outputStream ->
-                inputStream.copyTo(outputStream)
-            }
-        }
-        
-        return pdfFile.absolutePath
-    }
-    
-    /**
-     * Guarda múltiples páginas JPG
-     * 
-     * @param imageUris Lista de URIs de imágenes
-     * @param fileName Nombre base del archivo
-     * @return Lista de rutas de archivos guardados
-     */
-    suspend fun saveMultipleJpgFiles(imageUris: List<Uri>, fileName: String): List<String> {
-        val savedPaths = mutableListOf<String>()
-        
-        imageUris.forEachIndexed { index, uri ->
-            val timestamp = LocalDateTime.now().format(timestampFormatter)
-            val jpgFile = File(documentsDir, "${fileName}_page${index + 1}_${timestamp}.jpg")
-            
-            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun saveJpgFile(imageUri: Uri, fileName: String): String {
+        val finalFileName = "${fileName}_${LocalDateTime.now().format(timestampFormatter)}.jpg"
+        val jpgFile = File(documentsDir, finalFileName)
+        try {
+            context.contentResolver.openInputStream(imageUri)?.use { inputStream ->
                 FileOutputStream(jpgFile).use { outputStream ->
                     inputStream.copyTo(outputStream)
                 }
             }
-            
-            savedPaths.add(jpgFile.absolutePath)
+        } catch (e: IOException) {
+            throw IOException("Error al guardar JPG: ${e.message}", e)
         }
-        
-        return savedPaths
+        return jpgFile.absolutePath
     }
-    
-    /**
-     * Obtiene el URI para compartir un archivo
-     * 
-     * @param filePath Ruta del archivo
-     * @return URI para compartir usando FileProvider
-     */
-    fun getShareableUri(filePath: String): Uri {
-        val file = File(filePath)
-        return FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            file
-        )
-    }
-    
-    /**
-     * Obtiene el URI para compartir un documento completo
-     * 
-     * @param document Documento escaneado
-     * @param fileType Tipo de archivo a compartir (JPG o PDF)
-     * @return URI para compartir
-     */
-    fun getDocumentShareableUri(document: ScannedDocument, fileType: String): Uri {
-        val filePath = when (fileType.uppercase()) {
-            "JPG" -> document.jpgFilePath
-            "PDF" -> document.pdfFilePath
-            else -> throw IllegalArgumentException("Tipo de archivo no soportado: $fileType")
-        }
-        
-        return getShareableUri(filePath)
-    }
-    
-    /**
-     * Calcula el tamaño total de un archivo
-     * 
-     * @param filePath Ruta del archivo
-     * @return Tamaño en bytes
-     */
-    fun getFileSize(filePath: String): Long {
-        val file = File(filePath)
-        return if (file.exists()) file.length() else 0L
-    }
-    
-    /**
-     * Verifica si un archivo existe
-     * 
-     * @param filePath Ruta del archivo
-     * @return true si el archivo existe
-     */
-    fun fileExists(filePath: String): Boolean {
-        return File(filePath).exists()
-    }
-    
-    /**
-     * Elimina un archivo
-     * 
-     * @param filePath Ruta del archivo a eliminar
-     * @return true si se eliminó correctamente
-     */
-    fun deleteFile(filePath: String): Boolean {
-        val file = File(filePath)
-        return if (file.exists()) file.delete() else false
-    }
-    
-    /**
-     * Obtiene estadísticas del directorio de documentos
-     * 
-     * @return Pair con (número de archivos, tamaño total)
-     */
-    fun getDirectoryStats(): Pair<Int, Long> {
-        if (!documentsDir.exists()) return Pair(0, 0L)
-        
-        var fileCount = 0
-        var totalSize = 0L
-        
-        documentsDir.walkTopDown().forEach { file ->
-            if (file.isFile) {
-                fileCount++
-                totalSize += file.length()
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun savePdfFile(pdfUri: Uri, fileName: String): String {
+        val finalFileName = "${fileName}_${LocalDateTime.now().format(timestampFormatter)}.pdf"
+        val pdfFile = File(documentsDir, finalFileName)
+         try {
+            context.contentResolver.openInputStream(pdfUri)?.use { inputStream ->
+                FileOutputStream(pdfFile).use { outputStream ->
+                    inputStream.copyTo(outputStream)
+                }
             }
+        } catch (e: IOException) {
+            throw IOException("Error al guardar PDF: ${e.message}", e)
         }
-        
-        return Pair(fileCount, totalSize)
+        return pdfFile.absolutePath
     }
-    
+
     /**
-     * Limpia archivos temporales y obsoletos
-     * 
-     * @param maxAgeInDays Edad máxima en días para mantener archivos
+     * Elimina un archivo de la ruta especificada.
+     * @param filePath Ruta absoluta del archivo a eliminar (puede ser null).
+     * @return true si el archivo fue eliminado o no existía/path era null/blank, false si hubo error de permisos.
      */
-    fun cleanupOldFiles(maxAgeInDays: Int = 30) {
-        val cutoffTime = System.currentTimeMillis() - (maxAgeInDays * 24 * 60 * 60 * 1000L)
-        
-        documentsDir.walkTopDown().forEach { file ->
-            if (file.isFile && file.lastModified() < cutoffTime) {
+    fun deleteFile(filePath: String?): Boolean {
+        // Check for null or blank path first. If so, consider it "deleted" or "nothing to delete".
+        if (filePath == null || filePath.isBlank()) {
+            return true // Or false depending on desired behavior for blank/null paths
+        }
+        // At this point, filePath is smart-cast to a non-null String.
+        return try {
+            val file = File(filePath) // Safe: filePath is non-null here
+            if (file.exists()) {
                 file.delete()
+            } else {
+                true // File doesn't exist, so consider it successfully "deleted"
             }
+        } catch (_: SecurityException) {
+            // Log permission error, e.g., Log.e("FileService", "Permission error deleting $filePath", e)
+            false
         }
+    }
+
+    private fun getUriForFile(file: File): Uri? {
+        return try {
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider", 
+                file
+            )
+        } catch (e: IllegalArgumentException) {
+            // Log error, e.g., Log.e("FileService", "Error getting URI for file: ${file.path}", e)
+            null
+        }
+    }
+
+    /**
+     * Crea un Intent para VER un archivo.
+     */
+    fun createViewIntent(context: Context, filePath: String, mimeType: String? = null): Intent? {
+        val file = File(filePath)
+        if (!file.exists()) return null
+
+        val contentUri = getUriForFile(file) ?: return null
+        val actualMimeType = mimeType ?: determineMimeTypeSafely(file) ?: return null
+
+        return Intent().apply {
+            action = Intent.ACTION_VIEW
+            setDataAndType(contentUri, actualMimeType)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+    }
+
+    /**
+     * Crea un Intent para COMPARTIR un archivo.
+     */
+    fun createShareIntent(context: Context, filePath: String, mimeType: String? = null): Intent? {
+        val file = File(filePath)
+        if (!file.exists()) return null
+
+        val contentUri = getUriForFile(file) ?: return null
+        val actualMimeType = mimeType ?: determineMimeTypeSafely(file) ?: return null
+
+        return Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_STREAM, contentUri)
+            type = actualMimeType
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+    }
+    
+    // Renamed and ensured Locale.ROOT is used correctly
+    private fun determineMimeTypeSafely(file: File): String? {
+        val extension = file.extension
+        if (extension.isNotEmpty()) {
+            return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.toLowerCase(Locale.ROOT))
+        }
+        return null // Or a generic MIME type like "application/octet-stream"
+    }
+
+    fun createThumbnail(jpgPath: String): String? {
+        return jpgPath // Placeholder, consider actual thumbnail generation
     }
 }
