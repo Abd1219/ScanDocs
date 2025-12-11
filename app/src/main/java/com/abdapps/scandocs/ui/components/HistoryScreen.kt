@@ -203,8 +203,13 @@ fun DocumentHistoryItem(
                 )
             }
             if (document.jpgPath.isNotBlank()) {
-                 Text(
-                    text = "JPG: ${document.jpgPath.substringAfterLast('/')}",
+                val pageCount = document.getPageCount()
+                Text(
+                    text = if (pageCount > 1) {
+                        "JPG: $pageCount páginas individuales"
+                    } else {
+                        "JPG: ${document.jpgPath.substringAfterLast('/')}"
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                 )
@@ -244,6 +249,8 @@ fun ChooseFileDialog(
     onDismiss: () -> Unit,
     onFileChosen: (filePath: String, mimeType: String) -> Unit
 ) {
+    val jpgPaths = document.getJpgPaths()
+    
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("$actionType Documento: ${document.name}") },
@@ -251,17 +258,35 @@ fun ChooseFileDialog(
             Column {
                 Text("¿Qué formato deseas $actionType?")
                 Spacer(modifier = Modifier.height(16.dp))
+                
+                // Mostrar opción PDF si existe
                 if (document.pdfPath.isNotBlank()) {
                     TextButton(onClick = { onFileChosen(document.pdfPath, "application/pdf") }) {
-                        Text("PDF (${document.pdfPath.substringAfterLast('/')})")
+                        Text("📄 PDF Completo (${document.pdfPath.substringAfterLast('/')})")
+                    }
+                    if (jpgPaths.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
-                if (document.jpgPath.isNotBlank()) {
-                    TextButton(onClick = { onFileChosen(document.jpgPath, "image/jpeg") }) {
-                        Text("JPG (${document.jpgPath.substringAfterLast('/')})")
+                
+                // Mostrar todas las páginas JPG individuales
+                if (jpgPaths.isNotEmpty()) {
+                    Text(
+                        text = "Páginas individuales:",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    jpgPaths.forEachIndexed { index, jpgPath ->
+                        TextButton(onClick = { onFileChosen(jpgPath, "image/jpeg") }) {
+                            Text("🖼️ Página ${index + 1} (${jpgPath.substringAfterLast('/')})")
+                        }
                     }
                 }
-                 if (document.jpgPath.isBlank() && document.pdfPath.isBlank()) {
+                
+                // Mensaje si no hay archivos
+                if (jpgPaths.isEmpty() && document.pdfPath.isBlank()) {
                     Text("No hay archivos disponibles para este documento.")
                 }
             }
