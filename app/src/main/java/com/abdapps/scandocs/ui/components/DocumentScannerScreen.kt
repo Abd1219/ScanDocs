@@ -1,6 +1,6 @@
 package com.abdapps.scandocs.ui.components
 
-// import androidx.compose.material.icons.filled.History // Ya no se usa directamente
+import androidx.compose.foundation.Image // Importado para el logo
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size // Importado para el tamaño del logo
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -34,8 +35,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource // Importado para el logo
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.abdapps.scandocs.R // Importado para R.drawable
 import com.abdapps.scandocs.ScannerState
 import com.abdapps.scandocs.ScannerViewModel
 
@@ -57,7 +60,7 @@ fun DocumentScannerScreen(
                 actions = {
                     IconButton(onClick = onNavigateToHistory) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.List, // CAMBIADO a List
+                            imageVector = Icons.AutoMirrored.Filled.List,
                             contentDescription = "Historial"
                         )
                     }
@@ -90,6 +93,13 @@ fun DocumentScannerScreen(
                         verticalArrangement = Arrangement.Center,
                         modifier = Modifier.fillMaxSize()
                     ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.logo_scanpdftpe),
+                            contentDescription = "Logo ScanDocs",
+                            modifier = Modifier
+                                .size(120.dp) 
+                                .padding(bottom = 24.dp)
+                        )
                         Text(
                             text = "Listo para escanear documentos",
                             style = MaterialTheme.typography.bodyLarge
@@ -141,7 +151,6 @@ fun DocumentScannerScreen(
                         viewModel.showSaveDialog
                     }
                 }
-                // La rama ScannerState.COMPLETED -> TODO() ha sido eliminada
             }
         }
     }
