@@ -4,12 +4,20 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -142,20 +150,24 @@ fun MainScreen(
 @Composable
 fun MainScreenPreview() {
     ScanDocsTheme {
-        // En la vista previa, mostramos un estado de ejemplo
-        // En una implementación real, esto mostraría datos simulados
-        DocumentScannerScreen(
-            uiState = ScannerUiState(
-                isScannerReady = true,
-                isScanning = false,
-                scannedPages = emptyList(),
-                generatedPdf = null
-            ),
-            scannerState = ScannerState.READY,
-            onStartScan = { /* No-op en preview */ },
-            onClearResults = { /* No-op en preview */ },
-            onClearError = { /* No-op en preview */ },
-            onClearSuccess = { /* No-op en preview */ }
-        )
+        // Vista previa con estado de ejemplo
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "ScanDocs Preview",
+                    style = MaterialTheme.typography.headlineMedium
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Listo para escanear documentos",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+        }
     }
 }

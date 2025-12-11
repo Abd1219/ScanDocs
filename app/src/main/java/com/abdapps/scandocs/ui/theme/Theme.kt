@@ -13,21 +13,29 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Blue80,
-    secondary = BlueGrey80,
+    primary = ScanPrimaryDark,
+    secondary = ScanSecondaryDark,
     tertiary = Teal80,
     background = ScanDarkBackground,
     surface = ScanDarkSurface,
     onPrimary = Color.Black,
-    onSecondary = Color.Black,
+    onSecondary = Color.White,
     onTertiary = Color.Black,
     onBackground = Color.White,
-    onSurface = Color.White
+    onSurface = Color.White,
+    error = ScanErrorDark,
+    onError = Color.Black,
+    errorContainer = ScanErrorDark.copy(alpha = 0.2f),
+    onErrorContainer = ScanErrorDark,
+    primaryContainer = ScanPrimaryDark.copy(alpha = 0.2f),
+    onPrimaryContainer = ScanPrimaryDark,
+    surfaceVariant = ScanDarkSurface.copy(alpha = 0.8f),
+    onSurfaceVariant = Color.White.copy(alpha = 0.7f)
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Blue40,
-    secondary = BlueGrey40,
+    primary = ScanPrimary,
+    secondary = ScanSecondary,
     tertiary = Teal40,
     background = ScanBackground,
     surface = ScanSurface,
@@ -35,7 +43,15 @@ private val LightColorScheme = lightColorScheme(
     onSecondary = Color.White,
     onTertiary = Color.White,
     onBackground = Color.Black,
-    onSurface = Color.Black
+    onSurface = Color.Black,
+    error = ScanError,
+    onError = Color.White,
+    errorContainer = ScanError.copy(alpha = 0.1f),
+    onErrorContainer = ScanError,
+    primaryContainer = ScanPrimary.copy(alpha = 0.1f),
+    onPrimaryContainer = ScanPrimary,
+    surfaceVariant = ScanSurface.copy(alpha = 0.8f),
+    onSurfaceVariant = Color.Black.copy(alpha = 0.6f)
 )
 
 @Composable

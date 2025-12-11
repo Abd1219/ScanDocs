@@ -70,6 +70,10 @@ dependencies {
     // Permite mostrar miniaturas de documentos escaneados
     implementation(libs.coil.compose)
     
+    // ExifInterface - Para manejar orientación de imágenes
+    // Permite corregir automáticamente la rotación de fotos
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
