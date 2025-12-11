@@ -251,7 +251,13 @@ class ScannerViewModel(
     }
 
     fun updateDocumentName(name: String) {
-        _documentName.value = name
+        // Limpiar el nombre de caracteres problemáticos y espacios extra
+        val cleanedName = name.trim()
+            .replace(Regex("[\\r\\n\\t]"), "") // Remover saltos de línea y tabs
+            .replace(Regex("[<>:\"/\\\\|?*]"), "_") // Reemplazar caracteres no válidos para nombres de archivo
+            .take(50) // Limitar longitud
+        
+        _documentName.value = cleanedName
     }
 
     fun dismissSaveDialog() {

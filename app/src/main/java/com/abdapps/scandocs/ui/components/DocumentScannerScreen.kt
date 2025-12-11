@@ -361,11 +361,16 @@ fun SaveDocumentDialog(
                 
                 OutlinedTextField(
                     value = documentName,
-                    onValueChange = onNameChange,
+                    onValueChange = { newValue ->
+                        // Limpiar el texto de caracteres problemáticos y espacios extra
+                        val cleanedValue = newValue.trim().replace(Regex("[\\r\\n\\t]"), "")
+                        onNameChange(cleanedValue)
+                    },
                     label = { Text("Nombre del documento") },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !isProcessing,
-                    singleLine = true
+                    singleLine = true,
+                    placeholder = { Text("Ej: Documento_2024") }
                 )
                 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -390,7 +395,7 @@ fun SaveDocumentDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = onSave,
-                        enabled = documentName.isNotBlank() && !isProcessing
+                        enabled = documentName.trim().isNotEmpty() && !isProcessing
                     ) {
                         if (isProcessing) {
                             CircularProgressIndicator(
