@@ -47,11 +47,12 @@ class ScannerViewModel(
             try {
                 setLoading(true, "Inicializando escáner...")
                 
-                // Simular inicialización asíncrona
+                // La inicialización debe hacerse en el hilo principal
+                documentScanner = DocumentScanner(context, activity)
+                documentScanner?.initializeScanner()
+                
+                // Pequeña pausa para mostrar el loading (en background)
                 withContext(Dispatchers.IO) {
-                    documentScanner = DocumentScanner(context, activity)
-                    documentScanner?.initializeScanner()
-                    // Pequeña pausa para mostrar el loading
                     kotlinx.coroutines.delay(800)
                 }
                 

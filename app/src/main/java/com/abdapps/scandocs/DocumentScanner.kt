@@ -60,6 +60,12 @@ class DocumentScanner(
         this.onError = onError
         this.onScanCancel = onCancel // Guardar el callback de cancelación
         
+        // Verificar que el launcher esté inicializado
+        if (!::scannerLauncher.isInitialized) {
+            onError(Exception("El escáner no ha sido inicializado. Llama a initializeScanner() primero."))
+            return
+        }
+        
         try {
             scanner.getStartScanIntent(activity)
                 .addOnSuccessListener { intentSender ->
