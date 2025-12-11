@@ -5,7 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.abdapps.scandocs.data.converter.Converters
+import com.abdapps.scandocs.data.converter.DateTimeConverters
 import com.abdapps.scandocs.data.dao.ScannedDocumentDao
 import com.abdapps.scandocs.data.entity.ScannedDocument
 
@@ -28,7 +28,7 @@ import com.abdapps.scandocs.data.entity.ScannedDocument
     version = 1,
     exportSchema = false
 )
-@TypeConverters(Converters::class)
+@TypeConverters(DateTimeConverters::class)
 abstract class ScanDocsDatabase : RoomDatabase() {
     
     /**

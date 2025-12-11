@@ -2,7 +2,7 @@ package com.abdapps.scandocs.data.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import java.time.LocalDateTime
+import java.util.Date
 
 /**
  * Entidad que representa un documento escaneado en la base de datos
@@ -35,7 +35,7 @@ data class ScannedDocument(
     val pdfFilePath: String,
     val pageCount: Int,
     val fileSize: Long,
-    val scanDate: LocalDateTime = LocalDateTime.now(),
+    val scanDate: Date = Date(),
     val isFavorite: Boolean = false,
     val tags: String = ""
 )
