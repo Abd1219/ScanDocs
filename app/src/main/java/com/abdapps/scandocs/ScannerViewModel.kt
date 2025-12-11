@@ -327,7 +327,7 @@ class ScannerViewModel(
 
                 val document = DocumentEntity(
                     name = name,
-                    jpgPath = jpgPaths.firstOrNull() ?: "",
+                    jpgPath = jpgPaths.joinToString(","), // Guardar todas las rutas separadas por comas
                     pdfPath = pdfPath,
                     createdAt = Date(),
                     thumbnailPath = jpgPaths.firstOrNull() ?: ""
@@ -373,15 +373,19 @@ class ScannerViewModel(
                         filesDeletedSuccessfully = false
                     }
                 }
-                if (document.jpgPath.isNotBlank()) {
-                    if (!fileService.deleteFile(document.jpgPath)) {
-                        filesDeletedSuccessfully = false
+                // Eliminar todos los archivos JPG
+                document.getJpgPaths().forEach { jpgPath ->
+                    if (jpgPath.isNotBlank()) {
+                        if (!fileService.deleteFile(jpgPath)) {
+                            filesDeletedSuccessfully = false
+                        }
                     }
                 }
                 
-                // Corrección para thumbnailPath nulo
+                // Eliminar thumbnail si es diferente de las imágenes JPG principales
                 val currentThumbnailPath = document.thumbnailPath
-                if (currentThumbnailPath != null && currentThumbnailPath.isNotBlank() && currentThumbnailPath != document.jpgPath) {
+                val jpgPaths = document.getJpgPaths()
+                if (currentThumbnailPath != null && currentThumbnailPath.isNotBlank() && !jpgPaths.contains(currentThumbnailPath)) {
                      if (!fileService.deleteFile(currentThumbnailPath)) {
                         // filesDeletedSuccessfully = false; // Opcional: considerar si esto es crítico
                      }
@@ -431,6 +435,44 @@ class ScannerViewModel(
         }
     }
 
+    /**
+     * Comparte una página específica de un documento
+     */
+    fun shareDocumentPage(context: Context, document: DocumentEntity, pageIndex: Int) {
+        viewModelScope.launch {
+            try {
+                val jpgPaths = document.getJpgPaths()
+                if (pageIndex >= 0 && pageIndex < jpgPaths.size) {
+                    val jpgPath = jpgPaths[pageIndex]
+                    shareFile(context, jpgPath, "image/jpeg")
+                } else {
+                    updateUiState { copy(errorMessage = "Página no válida: ${pageIndex + 1}") }
+                }
+            } catch (e: Exception) {
+                updateUiState { copy(errorMessage = "Error al compartir página: ${e.message ?: "Error desconocido"}") }
+            }
+        }
+    }
+    
+    /**
+     * Ve una página específica de un documento
+     */
+    fun viewDocumentPage(context: Context, document: DocumentEntity, pageIndex: Int) {
+        viewModelScope.launch {
+            try {
+                val jpgPaths = document.getJpgPaths()
+                if (pageIndex >= 0 && pageIndex < jpgPaths.size) {
+                    val jpgPath = jpgPaths[pageIndex]
+                    viewFile(context, jpgPath, "image/jpeg")
+                } else {
+                    updateUiState { copy(errorMessage = "Página no válida: ${pageIndex + 1}") }
+                }
+            } catch (e: Exception) {
+                updateUiState { copy(errorMessage = "Error al ver página: ${e.message ?: "Error desconocido"}") }
+            }
+        }
+    }
+
     @Deprecated("Usar shareFile(context, filePath, mimeType) en su lugar después de la selección del usuario")
     fun shareDocument(context: Context, documentId: Long) {
         viewModelScope.launch {
@@ -439,7 +481,7 @@ class ScannerViewModel(
                 document?.let {
                     val (path, mime) = when {
                         it.pdfPath.isNotBlank() -> it.pdfPath to "application/pdf"
-                        it.jpgPath.isNotBlank() -> it.jpgPath to "image/jpeg"
+                        it.getFirstJpgPath() != null -> it.getFirstJpgPath()!! to "image/jpeg"
                         else -> null to null
                     }
 
