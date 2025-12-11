@@ -226,8 +226,8 @@ class ImageCache(private val context: Context) {
         return CacheStats(
             memorySize = memoryCache.size(),
             memoryMaxSize = memoryCache.maxSize(),
-            memoryHitCount = memoryCache.hitCount(),
-            memoryMissCount = memoryCache.missCount()
+            memoryHitCount = memoryCache.hitCount().toLong(),
+            memoryMissCount = memoryCache.missCount().toLong()
         )
     }
 }

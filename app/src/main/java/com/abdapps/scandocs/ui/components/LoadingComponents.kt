@@ -57,6 +57,8 @@ fun ScanningLoader(
         ),
         label = "rotation"
     )
+    
+    val primaryColor = MaterialTheme.colorScheme.primary
 
     Column(
         modifier = modifier,
@@ -73,7 +75,7 @@ fun ScanningLoader(
                     .rotate(rotation)
             ) {
                 drawScanningAnimation(
-                    color = MaterialTheme.colorScheme.primary,
+                    color = primaryColor,
                     strokeWidth = 6.dp.toPx()
                 )
             }
