@@ -251,11 +251,12 @@ class ScannerViewModel(
     }
 
     fun updateDocumentName(name: String) {
-        // Limpiar el nombre de caracteres problemáticos y espacios extra
-        val cleanedName = name.trim()
+        // Limpiar el nombre pero permitir espacios
+        val cleanedName = name
             .replace(Regex("[\\r\\n\\t]"), "") // Remover saltos de línea y tabs
             .replace(Regex("[<>:\"/\\\\|?*]"), "_") // Reemplazar caracteres no válidos para nombres de archivo
             .take(50) // Limitar longitud
+            .trim() // Solo quitar espacios al inicio y final
         
         _documentName.value = cleanedName
     }

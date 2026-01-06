@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
@@ -50,6 +52,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -362,15 +367,36 @@ fun SaveDocumentDialog(
                 OutlinedTextField(
                     value = documentName,
                     onValueChange = { newValue ->
-                        // Limpiar el texto de caracteres problemáticos y espacios extra
-                        val cleanedValue = newValue.trim().replace(Regex("[\\r\\n\\t]"), "")
+                        // Permitir espacios pero limpiar caracteres problemáticos
+                        val cleanedValue = newValue
+                            .replace(Regex("[\\r\\n\\t]"), "") // Remover saltos de línea y tabs
+                            .replace(Regex("[<>:\"/\\\\|?*]"), "_") // Reemplazar caracteres no válidos
+                            .take(50) // Limitar longitud
                         onNameChange(cleanedValue)
                     },
                     label = { Text("Nombre del documento") },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !isProcessing,
                     singleLine = true,
-                    placeholder = { Text("Ej: Documento_2024") }
+                    placeholder = { Text("Ej: Mi Documento 2024") },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Done,
+                        capitalization = KeyboardCapitalization.Words
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = { 
+                            if (documentName.trim().isNotEmpty() && !isProcessing) {
+                                onSave()
+                            }
+                        }
+                    ),
+                    supportingText = { 
+                        Text(
+                            text = "Puedes usar espacios y letras. Evita: < > : \" / \\ | ? *",
+                            style = MaterialTheme.typography.bodySmall
+                        ) 
+                    }
                 )
                 
                 Spacer(modifier = Modifier.height(8.dp))
