@@ -366,14 +366,7 @@ fun SaveDocumentDialog(
                 
                 OutlinedTextField(
                     value = documentName,
-                    onValueChange = { newValue ->
-                        // Permitir espacios pero limpiar caracteres problemáticos
-                        val cleanedValue = newValue
-                            .replace(Regex("[\\r\\n\\t]"), "") // Remover saltos de línea y tabs
-                            .replace(Regex("[<>:\"/\\\\|?*]"), "_") // Reemplazar caracteres no válidos
-                            .take(50) // Limitar longitud
-                        onNameChange(cleanedValue)
-                    },
+                    onValueChange = onNameChange, // Pasar directamente sin filtrar
                     label = { Text("Nombre del documento") },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !isProcessing,
@@ -393,7 +386,7 @@ fun SaveDocumentDialog(
                     ),
                     supportingText = { 
                         Text(
-                            text = "Puedes usar espacios y letras. Evita: < > : \" / \\ | ? *",
+                            text = "Usa cualquier nombre. Los caracteres especiales se ajustarán automáticamente.",
                             style = MaterialTheme.typography.bodySmall
                         ) 
                     }

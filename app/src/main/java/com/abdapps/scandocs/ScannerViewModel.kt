@@ -251,14 +251,8 @@ class ScannerViewModel(
     }
 
     fun updateDocumentName(name: String) {
-        // Limpiar el nombre pero permitir espacios
-        val cleanedName = name
-            .replace(Regex("[\\r\\n\\t]"), "") // Remover saltos de línea y tabs
-            .replace(Regex("[<>:\"/\\\\|?*]"), "_") // Reemplazar caracteres no válidos para nombres de archivo
-            .take(50) // Limitar longitud
-            .trim() // Solo quitar espacios al inicio y final
-        
-        _documentName.value = cleanedName
+        // Guardar el nombre tal como lo escribe el usuario
+        _documentName.value = name
     }
 
     fun dismissSaveDialog() {
@@ -274,7 +268,15 @@ class ScannerViewModel(
             val currentState = uiState.value
             val dateFormat = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault())
             val currentDate = Date()
-            val name = documentName.value.ifEmpty { "Scan_${dateFormat.format(currentDate)}" }
+            val rawName = documentName.value.ifEmpty { "Scan_${dateFormat.format(currentDate)}" }
+            
+            // Limpiar el nombre solo al momento de guardar
+            val name = rawName
+                .replace(Regex("[\\r\\n\\t]"), "") // Remover saltos de línea y tabs
+                .replace(Regex("[<>:\"/\\\\|?*]"), "_") // Reemplazar caracteres no válidos para nombres de archivo
+                .trim() // Quitar espacios al inicio y final
+                .take(50) // Limitar longitud
+                .ifEmpty { "Documento_${dateFormat.format(currentDate)}" } // Fallback si queda vacío
 
             try {
                 // Mostrar progreso de guardado
