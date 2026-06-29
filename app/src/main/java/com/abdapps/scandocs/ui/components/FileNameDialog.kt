@@ -8,7 +8,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.Dialog
+import com.abdapps.scandocs.R
 
 /**
  * Diálogo para nombrar archivos escaneados
@@ -50,7 +52,7 @@ fun FileNameDialog(
                 ) {
                     // Título del diálogo con estilo mejorado
                     Text(
-                        text = "Guardar Documento",
+                        text = stringResource(R.string.save_dialog_title),
                         color = MaterialTheme.colorScheme.primary,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
@@ -59,7 +61,7 @@ fun FileNameDialog(
                     
                     // Información del documento
                     Text(
-                        text = "Páginas escaneadas: $pageCount",
+                        text = stringResource(R.string.scanned_pages_count, pageCount),
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 24.dp)
@@ -72,14 +74,14 @@ fun FileNameDialog(
                             fileName = it
                             isError = false
                         },
-                        label = { Text("Nombre del archivo") },
-                        placeholder = { Text("Ej: Documento_Importante") },
+                        label = { Text(stringResource(R.string.doc_name_label)) },
+                        placeholder = { Text(stringResource(R.string.doc_name_placeholder)) },
                         isError = isError,
                         supportingText = {
                             if (isError) {
-                                Text("El nombre del archivo no puede estar vacío")
+                                Text(stringResource(R.string.doc_name_empty_error))
                             } else {
-                                Text("Se guardarán archivos JPG y PDF")
+                                Text(stringResource(R.string.save_dialog_formats_info))
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -98,7 +100,7 @@ fun FileNameDialog(
                             onClick = onDismiss,
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Cancelar")
+                            Text(stringResource(R.string.cancel_button))
                         }
                         
                         Spacer(modifier = Modifier.width(16.dp))
@@ -114,7 +116,7 @@ fun FileNameDialog(
                             },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Guardar")
+                            Text(stringResource(R.string.save_button))
                         }
                     }
                 }
@@ -143,27 +145,27 @@ fun DeleteConfirmationDialog(
             onDismissRequest = onDismiss,
             title = {
                 Text(
-                    text = "Eliminar Documento",
+                    text = stringResource(R.string.confirm_delete_title),
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
                 Text(
-                    text = "¿Estás seguro de que quieres eliminar '$fileName'?\n\nEsta acción no se puede deshacer."
+                    text = stringResource(R.string.confirm_delete_msg, fileName)
                 )
             },
             confirmButton = {
                 TextButton(
                     onClick = onConfirm
                 ) {
-                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.delete_button), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = onDismiss
                 ) {
-                    Text("Cancelar")
+                    Text(stringResource(R.string.cancel_button))
                 }
             }
         )
@@ -200,14 +202,14 @@ fun EditTagsDialog(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Editar Etiquetas",
+                        text = stringResource(R.string.edit_tags_title),
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
                     
                     Text(
-                        text = "Separa las etiquetas con comas",
+                        text = stringResource(R.string.edit_tags_hint),
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 24.dp)
@@ -216,8 +218,8 @@ fun EditTagsDialog(
                     OutlinedTextField(
                         value = tags,
                         onValueChange = { tags = it },
-                        label = { Text("Etiquetas") },
-                        placeholder = { Text("Ej: trabajo, importante, 2024") },
+                        label = { Text(stringResource(R.string.tags_label)) },
+                        placeholder = { Text(stringResource(R.string.tags_placeholder)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -232,7 +234,7 @@ fun EditTagsDialog(
                             onClick = onDismiss,
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Cancelar")
+                            Text(stringResource(R.string.cancel_button))
                         }
                         
                         Spacer(modifier = Modifier.width(16.dp))
@@ -241,7 +243,7 @@ fun EditTagsDialog(
                             onClick = { onConfirm(tags.trim()) },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Guardar")
+                            Text(stringResource(R.string.save_button))
                         }
                     }
                 }

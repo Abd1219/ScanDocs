@@ -25,6 +25,8 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.res.stringResource
+import com.abdapps.scandocs.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -45,7 +47,7 @@ import kotlin.math.sin
 @Composable
 fun ScanningLoader(
     modifier: Modifier = Modifier,
-    message: String = "Escaneando documento..."
+    message: String = stringResource(R.string.scanning_message)
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "scanning")
     val rotation by infiniteTransition.animateFloat(
@@ -179,7 +181,7 @@ fun SimpleLoader(
 fun LoadingOverlay(
     isVisible: Boolean,
     progress: Float? = null,
-    message: String = "Cargando...",
+    message: String = stringResource(R.string.loading_default),
     modifier: Modifier = Modifier
 ) {
     if (isVisible) {
@@ -237,7 +239,7 @@ fun InitializationLoader(
         Spacer(modifier = Modifier.height(12.dp))
         
         Text(
-            text = "Inicializando escáner...",
+            text = stringResource(R.string.init_scanner),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha)
         )

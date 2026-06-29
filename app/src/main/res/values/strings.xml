@@ -1,3 +1,93 @@
 <resources>
     <string name="app_name">ScanDocs</string>
+
+    <!-- Scanner Screen -->
+    <string name="scandocs_title">ScanDocs</string>
+    <string name="history_content_description">Historial</string>
+    <string name="scan_content_description">Escanear documento</string>
+    <string name="ready_to_scan">Listo para escanear documentos</string>
+    <string name="scan_instruction">Presiona el botón + para comenzar a escanear</string>
+    <string name="scanning_message">Escaneando documento...</string>
+    <string name="scan_success_msg">¡Documento escaneado!</string>
+    <string name="scanned_pages_count">Páginas escaneadas: %1$d</string>
+
+    <!-- Error States -->
+    <string name="error_title">Error</string>
+    <string name="retry_button">Reintentar</string>
+    <string name="unknown_error">Error desconocido</string>
+    <string name="camera_error">Error de cámara. Verifica los permisos y que la cámara no esté siendo usada por otra app.</string>
+    <string name="permission_error">Permisos insuficientes. Verifica los permisos de cámara y almacenamiento.</string>
+    <string name="network_error">Error de conexión. Verifica tu conexión a internet.</string>
+    <string name="storage_error">Error de almacenamiento. Verifica que tengas espacio suficiente.</string>
+    <string name="generic_scan_error">Error durante el escaneo: %1$s</string>
+    <string name="no_retry_operation">No hay operación para reintentar</string>
+
+    <!-- Loading & Processing -->
+    <string name="loading_default">Cargando...</string>
+    <string name="init_scanner">Inicializando escáner...</string>
+    <string name="processing_doc">Procesando documento escaneado...</string>
+    <string name="generating_preview">Generando vista previa...</string>
+    <string name="saving_doc">Guardando documento...</string>
+    <string name="saving_page">Guardando página %1$d de %2$d...</string>
+    <string name="generating_pdf">Generando PDF...</string>
+    <string name="finalizing_save">Finalizando...</string>
+    <string name="document_scanned_toast">Documento escaneado: %1$d página(s)</string>
+    <string name="save_success_toast">Documento %1$s guardado exitosamente</string>
+
+    <!-- Save Dialog -->
+    <string name="save_dialog_title">Guardar documento</string>
+    <string name="doc_name_label">Nombre del documento</string>
+    <string name="doc_name_placeholder">Ej: Mi Documento 2024</string>
+    <string name="save_dialog_supporting_text">Usa cualquier nombre. Los caracteres especiales se ajustarán automáticamente.</string>
+    <string name="save_dialog_formats_info">El documento se guardará como imagen JPG y PDF</string>
+    <string name="cancel_button">Cancelar</string>
+    <string name="save_button">Guardar</string>
+    <string name="saving_button">Guardando...</string>
+    <string name="doc_name_empty_error">El nombre del archivo no puede estar vacío</string>
+
+    <!-- History Screen -->
+    <string name="history_title">Historial de Documentos</string>
+    <string name="back_content_description">Volver</string>
+    <string name="empty_history">No hay documentos en el historial.</string>
+    <string name="saved_on_label">Guardado el: %1$s</string>
+    <string name="pdf_label">PDF: %1$s</string>
+    <string name="jpg_label_single">JPG: %1$s</string>
+    <string name="jpg_label_multiple">JPG: %1$d páginas individuales</string>
+    <string name="share_doc_content_description">Compartir documento</string>
+    <string name="delete_doc_content_description">Eliminar documento</string>
+
+    <string name="choose_format_title">%1$s Documento: %2$s</string>
+    <string name="action_view">Ver</string>
+    <string name="action_share">Compartir</string>
+    <string name="choose_format_message">¿Qué formato deseas %1$s?</string>
+    <string name="format_pdf_full">📄 PDF Completo (%1$s)</string>
+    <string name="format_jpg_page">🖼️ Página %1$d (%2$s)</string>
+    <string name="individual_pages_header">Páginas individuales:</string>
+    <string name="no_files_available">No hay archivos disponibles para este documento.</string>
+
+    <!-- Delete Confirmation -->
+    <string name="confirm_delete_title">Confirmar Eliminación</string>
+    <string name="confirm_delete_msg">¿Estás seguro de que deseas eliminar el documento \"%1$s\"? Esta acción no se puede deshacer.</string>
+    <string name="delete_button">Eliminar</string>
+    <string name="delete_success_toast">Documento \"%1$s\" eliminado.</string>
+    <string name="delete_partial_error">Documento \"%1$s\" eliminado de la BD, pero algunos archivos no se borraron.</string>
+    <string name="delete_error_toast">Error al eliminar \"%1$s\": %2$s</string>
+
+    <!-- View/Share Errors -->
+    <string name="view_error">Error al intentar ver el archivo: %1$s</string>
+    <string name="share_error">Error al intentar compartir el archivo: %1$s</string>
+    <string name="action_creation_error">No se puede crear la acción para completar la tarea.</string>
+    <string name="doc_not_found">Documento no encontrado.</string>
+    <string name="invalid_page">Página no válida: %1$d</string>
+
+    <!-- Tagging & Metadata -->
+    <string name="edit_tags_title">Editar Etiquetas</string>
+    <string name="edit_tags_hint">Separa las etiquetas con comas</string>
+    <string name="tags_label">Etiquetas</string>
+    <string name="tags_placeholder">Ej: trabajo, importante, 2024</string>
+    <string name="processing_msg">Procesando...</string>
+    <string name="saving_files">Guardando archivos...</string>
+    <string name="save_success">¡Guardado con éxito!</string>
+    <string name="error_camera">Error al acceder a la cámara</string>
+    <string name="error_permissions">Error de permisos</string>
 </resources>

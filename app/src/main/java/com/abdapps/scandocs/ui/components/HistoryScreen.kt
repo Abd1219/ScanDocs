@@ -2,15 +2,9 @@ package com.abdapps.scandocs.ui.components
 
 import android.content.Context // Necesario para futuras acciones de ver/compartir
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import com.abdapps.scandocs.R
+import com.abdapps.scandocs.ScannerViewModel
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -30,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -43,7 +38,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.abdapps.scandocs.ScannerViewModel
 import com.abdapps.scandocs.data.entity.DocumentEntity
 import com.abdapps.scandocs.ui.theme.ScanDocsTheme
 import java.text.SimpleDateFormat
@@ -72,7 +66,7 @@ fun HistoryScreen(
             TopAppBar(
                 title = { 
                     Text(
-                        "Historial de Documentos",
+                        stringResource(R.string.history_title),
                         color = MaterialTheme.colorScheme.onPrimary,
                         fontWeight = FontWeight.Bold
                     ) 
@@ -81,7 +75,7 @@ fun HistoryScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
+                            contentDescription = stringResource(R.string.back_content_description),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
@@ -106,7 +100,7 @@ fun HistoryScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "No hay documentos en el historial.",
+                        text = stringResource(R.string.empty_history),
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
@@ -131,7 +125,7 @@ fun HistoryScreen(
         showChooseFileDialogForView?.let { doc ->
             ChooseFileDialog(
                 document = doc,
-                actionType = "Ver",
+                actionType = stringResource(R.string.action_view),
                 onDismiss = { showChooseFileDialogForView = null },
                 onFileChosen = { filePath, mimeType ->
                     viewModel.viewFile(context, filePath, mimeType) // LLAMADA AL VIEWMODEL
@@ -143,7 +137,7 @@ fun HistoryScreen(
         showChooseFileDialogForShare?.let { doc ->
             ChooseFileDialog(
                 document = doc,
-                actionType = "Compartir",
+                actionType = stringResource(R.string.action_share),
                 onDismiss = { showChooseFileDialogForShare = null },
                 onFileChosen = { filePath, mimeType ->
                     viewModel.shareFile(context, filePath, mimeType) // LLAMADA AL VIEWMODEL
@@ -172,10 +166,11 @@ fun DocumentHistoryItem(
     dateFormatter: SimpleDateFormat,
     onViewClick: () -> Unit,
     onShareClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onViewClick),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -190,26 +185,27 @@ fun DocumentHistoryItem(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Guardado el: ${dateFormatter.format(document.createdAt)}",
+                text = stringResource(R.string.saved_on_label, dateFormatter.format(document.createdAt)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
             )
             Spacer(modifier = Modifier.height(8.dp))
             if (document.pdfPath.isNotBlank()) {
                 Text(
-                    text = "PDF: ${document.pdfPath.substringAfterLast('/')}",
+                    text = stringResource(R.string.pdf_label, document.pdfPath.substringAfterLast('/')),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                 )
             }
             if (document.jpgPath.isNotBlank()) {
                 val pageCount = document.getPageCount()
+                val jpgLabel = if (pageCount > 1) {
+                    stringResource(R.string.jpg_label_multiple, pageCount)
+                } else {
+                    stringResource(R.string.jpg_label_single, document.jpgPath.substringAfterLast('/'))
+                }
                 Text(
-                    text = if (pageCount > 1) {
-                        "JPG: $pageCount páginas individuales"
-                    } else {
-                        "JPG: ${document.jpgPath.substringAfterLast('/')}"
-                    },
+                    text = jpgLabel,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                 )
@@ -225,7 +221,7 @@ fun DocumentHistoryItem(
                 IconButton(onClick = onShareClick) {
                     Icon(
                         imageVector = Icons.Filled.Share,
-                        contentDescription = "Compartir documento",
+                        contentDescription = stringResource(R.string.share_doc_content_description),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
@@ -233,7 +229,7 @@ fun DocumentHistoryItem(
                 IconButton(onClick = onDeleteClick) {
                     Icon(
                         imageVector = Icons.Filled.Delete,
-                        contentDescription = "Eliminar documento",
+                        contentDescription = stringResource(R.string.delete_doc_content_description),
                         tint = MaterialTheme.colorScheme.error
                     )
                 }
@@ -253,16 +249,16 @@ fun ChooseFileDialog(
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("$actionType Documento: ${document.name}") },
+        title = { Text(stringResource(R.string.choose_format_title, actionType, document.name)) },
         text = {
             Column {
-                Text("¿Qué formato deseas $actionType?")
+                Text(stringResource(R.string.choose_format_message, actionType))
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 // Mostrar opción PDF si existe
                 if (document.pdfPath.isNotBlank()) {
                     TextButton(onClick = { onFileChosen(document.pdfPath, "application/pdf") }) {
-                        Text("📄 PDF Completo (${document.pdfPath.substringAfterLast('/')})")
+                        Text(stringResource(R.string.format_pdf_full, document.pdfPath.substringAfterLast('/')))
                     }
                     if (jpgPaths.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(8.dp))
@@ -272,7 +268,7 @@ fun ChooseFileDialog(
                 // Mostrar todas las páginas JPG individuales
                 if (jpgPaths.isNotEmpty()) {
                     Text(
-                        text = "Páginas individuales:",
+                        text = stringResource(R.string.individual_pages_header),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Bold
                     )
@@ -280,20 +276,20 @@ fun ChooseFileDialog(
                     
                     jpgPaths.forEachIndexed { index, jpgPath ->
                         TextButton(onClick = { onFileChosen(jpgPath, "image/jpeg") }) {
-                            Text("🖼️ Página ${index + 1} (${jpgPath.substringAfterLast('/')})")
+                            Text(stringResource(R.string.format_jpg_page, index + 1, jpgPath.substringAfterLast('/')))
                         }
                     }
                 }
                 
                 // Mensaje si no hay archivos
                 if (jpgPaths.isEmpty() && document.pdfPath.isBlank()) {
-                    Text("No hay archivos disponibles para este documento.")
+                    Text(stringResource(R.string.no_files_available))
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text(stringResource(R.string.cancel_button))
             }
         }
     )
@@ -307,16 +303,16 @@ fun ConfirmDeleteDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Confirmar Eliminación") },
-        text = { Text("¿Estás seguro de que deseas eliminar el documento \"$documentName\"? Esta acción no se puede deshacer.") },
+        title = { Text(stringResource(R.string.confirm_delete_title)) },
+        text = { Text(stringResource(R.string.confirm_delete_msg, documentName)) },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text("Eliminar")
+                Text(stringResource(R.string.delete_button))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text(stringResource(R.string.cancel_button))
             }
         }
     )
@@ -365,7 +361,7 @@ fun HistoryScreenPreview() {
                 }
                  showChooseFileDialogForViewP?.let { doc ->
                     ChooseFileDialog(
-                        document = doc, actionType = "Ver",
+                        document = doc, actionType = stringResource(R.string.action_view),
                         onDismiss = { showChooseFileDialogForViewP = null },
                         // En Preview, solo cerramos el diálogo, no llamamos al ViewModel
                         onFileChosen = { _, _ -> showChooseFileDialogForViewP = null }
@@ -373,7 +369,7 @@ fun HistoryScreenPreview() {
                 }
                 showChooseFileDialogForShareP?.let { doc ->
                     ChooseFileDialog(
-                        document = doc, actionType = "Compartir",
+                        document = doc, actionType = stringResource(R.string.action_share),
                         onDismiss = { showChooseFileDialogForShareP = null },
                         onFileChosen = { _, _ -> showChooseFileDialogForShareP = null }
                     )

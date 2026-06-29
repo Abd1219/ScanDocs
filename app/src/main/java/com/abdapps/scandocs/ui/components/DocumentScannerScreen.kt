@@ -16,10 +16,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
@@ -31,7 +32,6 @@ import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -48,10 +48,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -60,30 +65,45 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.abdapps.scandocs.R
 import com.abdapps.scandocs.ScannerState
+import com.abdapps.scandocs.ScannerStatus
 import com.abdapps.scandocs.ScannerUiState
 import com.abdapps.scandocs.ScannerViewModel
+import com.abdapps.scandocs.data.entity.DocumentEntity
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DocumentScannerScreen(
     viewModel: ScannerViewModel,
-    onNavigateToHistory: () -> Unit
+    modifier: Modifier = Modifier,
+    onNavigateToHistory: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scannerState by viewModel.scannerState.collectAsState()
     val showSaveDialog by viewModel.showSaveDialog.collectAsState()
     val documentName by viewModel.documentName.collectAsState()
+    val historyItems by viewModel.allDocuments.collectAsState(initial = emptyList())
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    val dateFormatter = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
 
-    // Manejo de mensajes de error y éxito
-    LaunchedEffect(uiState.errorMessage) {
-        uiState.errorMessage?.let { message ->
+    // Estado para diálogos del historial
+    var showChooseFileDialogForView by remember { mutableStateOf<DocumentEntity?>(null) }
+    var showChooseFileDialogForShare by remember { mutableStateOf<DocumentEntity?>(null) }
+    var showConfirmDeleteDialog by remember { mutableStateOf<DocumentEntity?>(null) }
+
+    // Manejo de mensajes de error
+    LaunchedEffect(uiState.status) {
+        val status = uiState.status
+        if (status is ScannerStatus.Error) {
+            val message = status.message.asString(context)
             val result = snackbarHostState.showSnackbar(
                 message = message,
-                actionLabel = if (uiState.canRetry) "Reintentar" else null,
+                actionLabel = context.getString(R.string.retry_button),
                 duration = SnackbarDuration.Long
             )
-            if (result == SnackbarResult.ActionPerformed && uiState.canRetry) {
+            if (result == SnackbarResult.ActionPerformed) {
                 viewModel.retryLastOperation()
             }
             viewModel.clearError()
@@ -91,9 +111,9 @@ fun DocumentScannerScreen(
     }
 
     LaunchedEffect(uiState.successMessage) {
-        uiState.successMessage?.let { message ->
+        uiState.successMessage?.let { uiText ->
             snackbarHostState.showSnackbar(
-                message = message,
+                message = uiText.asString(context),
                 duration = SnackbarDuration.Short
             )
             viewModel.clearSuccess()
@@ -103,20 +123,12 @@ fun DocumentScannerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("ScanDocs") },
-                actions = {
-                    IconButton(onClick = onNavigateToHistory) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.List,
-                            contentDescription = "Historial"
-                        )
-                    }
-                }
+                title = { Text(stringResource(R.string.scandocs_title)) }
             )
         },
         floatingActionButton = {
             AnimatedVisibility(
-                visible = scannerState == ScannerState.READY && !uiState.isLoading,
+                visible = uiState.status is ScannerStatus.Ready && (uiState.scannedPages.isEmpty() || scannerState == ScannerState.SUCCESS),
                 enter = fadeIn(animationSpec = tween(300)),
                 exit = fadeOut(animationSpec = tween(300))
             ) {
@@ -126,7 +138,7 @@ fun DocumentScannerScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Add,
-                        contentDescription = "Escanear documento"
+                        contentDescription = stringResource(R.string.scan_content_description)
                     )
                 }
             }
@@ -139,35 +151,135 @@ fun DocumentScannerScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Contenido principal
-            MainContent(
-                uiState = uiState,
-                scannerState = scannerState,
-                onRetry = { viewModel.retryLastOperation() }
-            )
-            
+            // Contenido principal: estado del escáner + historial
+            LazyColumn(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // --- Sección: Estado del escáner ---
+                item {
+                    MainContent(
+                        uiState = uiState,
+                        scannerState = scannerState,
+                        onRetry = { viewModel.retryLastOperation() }
+                    )
+                }
+
+                // --- Sección: Historial ---
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.history_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                if (historyItems.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = stringResource(R.string.empty_history),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                } else {
+                    items(historyItems, key = { it.id }) { document ->
+                        DocumentHistoryItem(
+                            document = document,
+                            dateFormatter = dateFormatter,
+                            onViewClick = { showChooseFileDialogForView = document },
+                            onShareClick = { showChooseFileDialogForShare = document },
+                            onDeleteClick = { showConfirmDeleteDialog = document },
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                        )
+                    }
+                    // Espacio al final para que el FAB no tape el último ítem
+                    item { Spacer(modifier = Modifier.height(80.dp)) }
+                }
+            }
+
             // Overlay de loading/processing
+            val status = uiState.status
             AnimatedVisibility(
-                visible = uiState.isLoading || uiState.isProcessing,
+                visible = status is ScannerStatus.Processing || status is ScannerStatus.Saving,
                 enter = fadeIn(animationSpec = tween(300)),
                 exit = fadeOut(animationSpec = tween(300))
             ) {
-                LoadingOverlay(
-                    isProcessing = uiState.isProcessing,
-                    progress = uiState.processingProgress,
-                    message = uiState.loadingMessage ?: "Cargando..."
-                )
+                if (status is ScannerStatus.Processing) {
+                    LoadingOverlay(
+                        isVisible = true,
+                        progress = if (status.progress > 0f) status.progress else null,
+                        message = status.message.asString()
+                    )
+                } else if (status is ScannerStatus.Saving) {
+                    LoadingOverlay(
+                        isVisible = true,
+                        message = stringResource(R.string.saving_files)
+                    )
+                }
             }
         }
     }
-    
+
+    // --- Diálogos del historial ---
+    showChooseFileDialogForView?.let { doc ->
+        ChooseFileDialog(
+            document = doc,
+            actionType = stringResource(R.string.action_view),
+            onDismiss = { showChooseFileDialogForView = null },
+            onFileChosen = { filePath, mimeType ->
+                viewModel.viewFile(context, filePath, mimeType)
+                showChooseFileDialogForView = null
+            }
+        )
+    }
+
+    showChooseFileDialogForShare?.let { doc ->
+        ChooseFileDialog(
+            document = doc,
+            actionType = stringResource(R.string.action_share),
+            onDismiss = { showChooseFileDialogForShare = null },
+            onFileChosen = { filePath, mimeType ->
+                viewModel.shareFile(context, filePath, mimeType)
+                showChooseFileDialogForShare = null
+            }
+        )
+    }
+
+    showConfirmDeleteDialog?.let { doc ->
+        ConfirmDeleteDialog(
+            documentName = doc.name,
+            onDismiss = { showConfirmDeleteDialog = null },
+            onConfirm = {
+                viewModel.deleteDocument(doc)
+                showConfirmDeleteDialog = null
+            }
+        )
+    }
+
+    // Diálogo para guardar documento tras escaneo
     if (showSaveDialog) {
         SaveDocumentDialog(
             documentName = documentName,
             onNameChange = { viewModel.updateDocumentName(it) },
-            onSave = { viewModel.saveDocument() },
+            onSave = { viewModel.saveDocument(documentName) },
             onDismiss = { viewModel.dismissSaveDialog() },
-            isProcessing = uiState.isProcessing
+            isProcessing = uiState.status is ScannerStatus.Saving || uiState.status is ScannerStatus.Processing
         )
     }
 }
@@ -179,7 +291,9 @@ private fun MainContent(
     onRetry: () -> Unit
 ) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         when (scannerState) {
@@ -190,9 +304,13 @@ private fun MainContent(
                 ScanningState()
             }
             ScannerState.ERROR -> {
+                val errorMessage = if (uiState.status is ScannerStatus.Error) {
+                    (uiState.status as ScannerStatus.Error).message.asString()
+                } else stringResource(R.string.unknown_error)
+
                 ErrorState(
-                    message = uiState.errorMessage ?: "Error desconocido",
-                    canRetry = uiState.canRetry,
+                    message = errorMessage,
+                    canRetry = true,
                     onRetry = onRetry
                 )
             }
@@ -213,24 +331,24 @@ private fun ReadyState() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp)
+            .fillMaxWidth()
+            .padding(horizontal = 32.dp, vertical = 24.dp)
     ) {
         Image(
             painter = painterResource(id = R.drawable.logo_scanpdftpe),
-            contentDescription = "Logo ScanDocs",
+            contentDescription = stringResource(R.string.scandocs_title),
             modifier = Modifier
-                .size(120.dp)
-                .padding(bottom = 24.dp)
+                .size(100.dp)
+                .padding(bottom = 16.dp)
         )
         Text(
-            text = "Listo para escanear documentos",
+            text = stringResource(R.string.ready_to_scan),
             style = MaterialTheme.typography.headlineSmall,
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Presiona el botón + para comenzar a escanear",
+            text = stringResource(R.string.scan_instruction),
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -241,7 +359,7 @@ private fun ReadyState() {
 @Composable
 private fun ScanningState() {
     ScanningLoader(
-        message = "Escaneando documento..."
+        message = stringResource(R.string.scanning_message)
     )
 }
 
@@ -264,7 +382,7 @@ private fun ErrorState(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Error",
+                text = stringResource(R.string.error_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onErrorContainer
             )
@@ -289,7 +407,7 @@ private fun ErrorState(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Reintentar")
+                    Text(stringResource(R.string.retry_button))
                 }
             }
         }
@@ -311,13 +429,13 @@ private fun SuccessState(pageCount: Int) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "¡Documento escaneado!",
+                text = stringResource(R.string.scan_success_msg),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Páginas escaneadas: $pageCount",
+                text = stringResource(R.string.scanned_pages_count, pageCount),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
@@ -358,49 +476,50 @@ fun SaveDocumentDialog(
                     .fillMaxWidth()
             ) {
                 Text(
-                    text = "Guardar documento",
+                    text = stringResource(R.string.save_dialog_title),
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 OutlinedTextField(
                     value = documentName,
-                    onValueChange = onNameChange, // Pasar directamente sin filtrar
-                    label = { Text("Nombre del documento") },
+                    onValueChange = onNameChange,
+                    label = { Text(stringResource(R.string.doc_name_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !isProcessing,
-                    singleLine = true,
-                    placeholder = { Text("Ej: Mi Documento 2024") },
+                    singleLine = false,
+                    maxLines = 1,
+                    placeholder = { Text(stringResource(R.string.doc_name_placeholder)) },
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Text,
                         imeAction = ImeAction.Done,
                         capitalization = KeyboardCapitalization.Words
                     ),
                     keyboardActions = KeyboardActions(
-                        onDone = { 
+                        onDone = {
                             if (documentName.trim().isNotEmpty() && !isProcessing) {
                                 onSave()
                             }
                         }
                     ),
-                    supportingText = { 
+                    supportingText = {
                         Text(
-                            text = "Usa cualquier nombre. Los caracteres especiales se ajustarán automáticamente.",
+                            text = stringResource(R.string.save_dialog_supporting_text),
                             style = MaterialTheme.typography.bodySmall
-                        ) 
+                        )
                     }
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "El documento se guardará como imagen JPG y PDF",
+                    text = stringResource(R.string.save_dialog_formats_info),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
@@ -409,7 +528,7 @@ fun SaveDocumentDialog(
                         onClick = onDismiss,
                         enabled = !isProcessing
                     ) {
-                        Text("Cancelar")
+                        Text(stringResource(R.string.cancel_button))
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
@@ -424,7 +543,7 @@ fun SaveDocumentDialog(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                         }
-                        Text(if (isProcessing) "Guardando..." else "Guardar")
+                        Text(if (isProcessing) stringResource(R.string.saving_button) else stringResource(R.string.save_button))
                     }
                 }
             }

@@ -11,12 +11,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.abdapps.scandocs.data.entity.DocumentEntity
 import com.abdapps.scandocs.data.repository.DocumentRepository
 import com.abdapps.scandocs.service.FileService
+import com.abdapps.scandocs.utils.UiText
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -45,7 +47,7 @@ class ScannerViewModel(
     fun initializeScanner(context: Context, activity: androidx.fragment.app.FragmentActivity) {
         viewModelScope.launch {
             try {
-                setLoading(true, "Inicializando escáner...")
+                setLoading(true, UiText.StringResource(R.string.init_scanner))
                 
                 // La inicialización debe hacerse en el hilo principal
                 documentScanner = DocumentScanner(context, activity)
@@ -56,55 +58,36 @@ class ScannerViewModel(
                     kotlinx.coroutines.delay(800)
                 }
                 
+                _uiState.update { it.copy(status = ScannerStatus.Ready) }
                 _scannerState.value = ScannerState.READY
-                updateUiState { 
-                    copy(
-                        isScannerReady = true,
-                        isLoading = false,
-                        loadingMessage = null
-                    ) 
-                }
             } catch (e: Exception) {
-                _scannerState.value = ScannerState.ERROR
-                updateUiState { 
-                    copy(
-                        isLoading = false,
-                        loadingMessage = null,
-                        errorMessage = "Error al inicializar el escáner: ${getErrorMessage(e)}",
-                        canRetry = true
-                    ) 
-                }
+                handleError(e)
             }
         }
     }
 
     private fun handleScanCancelled() {
         viewModelScope.launch {
+            _uiState.update { it.copy(status = ScannerStatus.Ready) }
             _scannerState.value = ScannerState.READY
-            updateUiState {
-                copy(
-                    isScanning = false,
-                    errorMessage = null // Limpiar cualquier error previo
-                )
-            }
         }
     }
 
     fun startScanning() {
         if (_scannerState.value != ScannerState.READY) {
-            updateUiState { copy(errorMessage = "El escáner no está listo o está ocupado.") } // Mensaje más específico
+            _uiState.update { it.copy(status = ScannerStatus.Error(UiText.StringResource(R.string.no_retry_operation))) }
             return
         }
         
         viewModelScope.launch {
             try {
+                _uiState.update { it.copy(status = ScannerStatus.Scanning) }
                 _scannerState.value = ScannerState.SCANNING
-                updateUiState { copy(isScanning = true, errorMessage = null) } // Limpiar errores al iniciar
                 
                 documentScanner?.startScan(
-                    onResult = this@ScannerViewModel::handleScanResult,
-                    onError = this@ScannerViewModel::handleScanError,
-                    onCancel = this@ScannerViewModel::handleScanCancelled // Pasar el nuevo callback
+                    onResult = { result -> handleScanResult(ScannerResult.Success(result.pages, result.pdf)) },
+                    onError = { error -> handleScanResult(ScannerResult.Error(error.message ?: "Unknown")) },
+                    onCancel = { handleScanResult(ScannerResult.Canceled) }
                 )
             } catch (e: Exception) {
                 handleScanError(e) 
@@ -112,104 +95,50 @@ class ScannerViewModel(
         }
     }
 
-    private fun handleScanResult(result: DocumentScanResult) {
+    private fun handleScanResult(result: ScannerResult) {
         viewModelScope.launch {
-            try {
-                // Mostrar estado de procesamiento
-                updateUiState {
-                    copy(
-                        isScanning = false,
-                        isProcessing = true,
-                        processingProgress = 0.3f,
-                        loadingMessage = "Procesando documento escaneado..."
-                    )
-                }
-                
-                // Simular procesamiento (en una implementación real aquí iría la optimización de imágenes)
-                kotlinx.coroutines.delay(500)
-                
-                updateUiState {
-                    copy(
-                        processingProgress = 0.7f,
-                        loadingMessage = "Generando vista previa..."
-                    )
-                }
-                
-                kotlinx.coroutines.delay(300)
-                
-                _scannerState.value = ScannerState.SUCCESS
-                updateUiState {
-                    copy(
-                        isProcessing = false,
-                        processingProgress = 1f,
+            when (result) {
+                is ScannerResult.Success -> {
+                    _uiState.update { it.copy(
+                        status = ScannerStatus.Ready,
                         scannedPages = result.pages,
-                        generatedPdf = result.pdf,
-                        successMessage = "Documento escaneado: ${result.pages.size} página(s)",
-                        loadingMessage = null
-                    )
+                        generatedPdf = result.pdf
+                    ) }
+                    _scannerState.value = ScannerState.SUCCESS
+                    _documentName.value = "Documento_${SimpleDateFormat("yyyyMMdd_HHmm", Locale.getDefault()).format(Date())}"
+                    _showSaveDialog.value = true
                 }
-                
-                _showSaveDialog.value = true
-                val dateFormat = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault())
-                _documentName.value = "Scan_${dateFormat.format(Date())}"
-                
-            } catch (e: Exception) {
-                handleScanError(e)
+                is ScannerResult.Canceled -> {
+                    _uiState.update { it.copy(status = ScannerStatus.Ready) }
+                    _scannerState.value = ScannerState.READY
+                }
+                is ScannerResult.Error -> {
+                    handleError(Exception(result.error))
+                }
             }
         }
     }
 
     private fun handleScanError(error: Exception) {
-        viewModelScope.launch {
-            _scannerState.value = ScannerState.ERROR
-            updateUiState {
-                copy(
-                    isScanning = false,
-                    isProcessing = false,
-                    isLoading = false,
-                    loadingMessage = null,
-                    processingProgress = 0f,
-                    errorMessage = getErrorMessage(error),
-                    canRetry = isRetryableError(error)
-                )
-            }
-        }
+        handleError(error)
     }
     
-    private fun getErrorMessage(error: Exception): String {
-        return when {
-            error.message?.contains("camera", ignoreCase = true) == true -> 
-                "Error de cámara. Verifica los permisos y que la cámara no esté siendo usada por otra app."
-            error.message?.contains("permission", ignoreCase = true) == true -> 
-                "Permisos insuficientes. Verifica los permisos de cámara y almacenamiento."
-            error.message?.contains("network", ignoreCase = true) == true -> 
-                "Error de conexión. Verifica tu conexión a internet."
-            error.message?.contains("storage", ignoreCase = true) == true -> 
-                "Error de almacenamiento. Verifica que tengas espacio suficiente."
-            else -> "Error durante el escaneo: ${error.message ?: "Error desconocido"}"
+    private fun handleError(e: Exception) {
+        val errorMessage = when {
+            e.message?.contains("camera", true) == true -> UiText.StringResource(R.string.error_camera)
+            e.message?.contains("permis", true) == true -> UiText.StringResource(R.string.error_permissions)
+            else -> UiText.DynamicString(e.message ?: "Error desconocido")
         }
-    }
-    
-    private fun isRetryableError(error: Exception): Boolean {
-        return when {
-            error.message?.contains("network", ignoreCase = true) == true -> true
-            error.message?.contains("timeout", ignoreCase = true) == true -> true
-            error.message?.contains("temporary", ignoreCase = true) == true -> true
-            else -> false
-        }
+        _uiState.update { it.copy(status = ScannerStatus.Error(errorMessage)) }
+        _scannerState.value = ScannerState.ERROR
     }
 
     fun clearError() {
-        updateUiState { 
-            copy(
-                errorMessage = null, 
-                canRetry = false
-            ) 
-        }
+        _uiState.update { it.copy(status = ScannerStatus.Ready) }
     }
 
     fun clearSuccess() {
-        updateUiState { copy(successMessage = null) }
+        _uiState.update { it.copy(successMessage = null) }
     }
     
     fun retryLastOperation() {
@@ -219,150 +148,85 @@ class ScannerViewModel(
                 startScanning()
             }
             else -> {
-                // No hay operación para reintentar
-                updateUiState { 
-                    copy(errorMessage = "No hay operación para reintentar") 
-                }
+                _uiState.update { it.copy(status = ScannerStatus.Error(UiText.StringResource(R.string.no_retry_operation))) }
             }
         }
     }
     
-    fun setLoading(isLoading: Boolean, message: String? = null) {
-        updateUiState { 
-            copy(
-                isLoading = isLoading,
-                loadingMessage = if (isLoading) message else null
-            ) 
+    private fun setLoading(isLoading: Boolean, message: UiText = UiText.StringResource(R.string.processing_msg)) {
+        if (isLoading) {
+            _uiState.update { it.copy(status = ScannerStatus.Processing(0f, message)) }
+        } else {
+            _uiState.update { it.copy(status = ScannerStatus.Ready) }
         }
     }
 
     fun clearResults() {
-        updateUiState {
-            copy(
+        _uiState.update {
+            it.copy(
+                status = ScannerStatus.Ready,
                 scannedPages = emptyList(),
                 generatedPdf = null,
-                successMessage = null,
-                errorMessage = null,
-                isScannerReady = true,
-                isScanning = false
+                successMessage = null
             )
         }
         _scannerState.value = ScannerState.READY
     }
 
     fun updateDocumentName(name: String) {
-        // Guardar el nombre tal como lo escribe el usuario
         _documentName.value = name
     }
 
     fun dismissSaveDialog() {
         _showSaveDialog.value = false
-        // Considerar llamar a clearResults() si el usuario cancela el guardado
-        // para que la UI vuelva al estado inicial de escaneo.
         clearResults() 
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    fun saveDocument() {
+    fun saveDocument(name: String) {
         viewModelScope.launch {
-            val currentState = uiState.value
-            val dateFormat = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault())
-            val currentDate = Date()
-            val rawName = documentName.value.ifEmpty { "Scan_${dateFormat.format(currentDate)}" }
-            
-            // Limpiar el nombre solo al momento de guardar
-            val name = rawName
-                .replace(Regex("[\\r\\n\\t]"), "") // Remover saltos de línea y tabs
-                .replace(Regex("[<>:\"/\\\\|?*]"), "_") // Reemplazar caracteres no válidos para nombres de archivo
-                .trim() // Quitar espacios al inicio y final
-                .take(50) // Limitar longitud
-                .ifEmpty { "Documento_${dateFormat.format(currentDate)}" } // Fallback si queda vacío
-
             try {
-                // Mostrar progreso de guardado
-                updateUiState {
-                    copy(
-                        isProcessing = true,
-                        processingProgress = 0.1f,
-                        loadingMessage = "Guardando documento..."
-                    )
-                }
-
-                val jpgPaths = mutableListOf<String>()
-                val totalPages = currentState.scannedPages.size
+                _showSaveDialog.value = false
+                _uiState.update { it.copy(status = ScannerStatus.Saving) }
                 
-                // Guardar imágenes con progreso
-                currentState.scannedPages.forEachIndexed { index, page ->
-                    updateUiState {
-                        copy(
-                            processingProgress = 0.1f + (0.6f * (index + 1) / totalPages),
-                            loadingMessage = "Guardando página ${index + 1} de $totalPages..."
-                        )
-                    }
-                    
-                    val jpgPath = withContext(Dispatchers.IO) {
-                        fileService.saveJpgFile(page.imageUri, "${name}_page${index + 1}")
-                    }
-                    jpgPaths.add(jpgPath)
+                val pdfUri = _uiState.value.generatedPdf?.uri
+                val pages = _uiState.value.scannedPages
+                
+                if (pdfUri == null && pages.isEmpty()) {
+                    throw Exception("No hay documentos para guardar")
                 }
 
-                // Guardar PDF
-                updateUiState {
-                    copy(
-                        processingProgress = 0.8f,
-                        loadingMessage = "Generando PDF..."
-                    )
+                // Simular progreso de guardado
+                for (i in 1..5) {
+                    val progress = i * 0.2f
+                    _uiState.update { it.copy(status = ScannerStatus.Processing(progress, UiText.StringResource(R.string.saving_files))) }
+                    kotlinx.coroutines.delay(200)
                 }
 
-                val pdfPath = currentState.generatedPdf?.let {
-                    withContext(Dispatchers.IO) {
-                        fileService.savePdfFile(it.uri, name)
-                    }
-                } ?: ""
-
-                // Guardar en base de datos
-                updateUiState {
-                    copy(
-                        processingProgress = 0.9f,
-                        loadingMessage = "Finalizando..."
-                    )
+                val savedPdfPath = pdfUri?.let { fileService.savePdfFile(it, name) } ?: ""
+                
+                val jpgPaths = mutableListOf<String>()
+                pages.forEachIndexed { index, page ->
+                    val path = fileService.saveJpgFile(page.imageUri, "${name}_page_${index + 1}")
+                    jpgPaths.add(path)
                 }
 
                 val document = DocumentEntity(
                     name = name,
-                    jpgPath = jpgPaths.joinToString(","), // Guardar todas las rutas separadas por comas
-                    pdfPath = pdfPath,
+                    jpgPath = jpgPaths.joinToString(","),
+                    pdfPath = savedPdfPath,
                     createdAt = Date(),
-                    thumbnailPath = jpgPaths.firstOrNull() ?: ""
+                    thumbnailPath = if (jpgPaths.isNotEmpty()) jpgPaths[0] else ""
                 )
-
-                withContext(Dispatchers.IO) {
-                    repository.insertDocument(document)
-                }
-
-                updateUiState {
-                    copy(
-                        isProcessing = false,
-                        processingProgress = 1f,
-                        loadingMessage = null,
-                        successMessage = "Documento '$name' guardado exitosamente"
-                    )
-                }
                 
-                // Pequeña pausa para mostrar el éxito antes de limpiar
-                kotlinx.coroutines.delay(1000)
-                dismissSaveDialog()
+                repository.insertDocument(document)
                 
+                _uiState.update { it.copy(
+                    status = ScannerStatus.Ready,
+                    successMessage = UiText.StringResource(R.string.save_success)
+                ) }
             } catch (e: Exception) {
-                updateUiState {
-                    copy(
-                        isProcessing = false,
-                        processingProgress = 0f,
-                        loadingMessage = null,
-                        errorMessage = "Error al guardar el documento: ${getErrorMessage(e)}",
-                        canRetry = true
-                    )
-                }
+                handleError(e)
             }
         }
     }
@@ -376,7 +240,6 @@ class ScannerViewModel(
                         filesDeletedSuccessfully = false
                     }
                 }
-                // Eliminar todos los archivos JPG
                 document.getJpgPaths().forEach { jpgPath ->
                     if (jpgPath.isNotBlank()) {
                         if (!fileService.deleteFile(jpgPath)) {
@@ -385,25 +248,23 @@ class ScannerViewModel(
                     }
                 }
                 
-                // Eliminar thumbnail si es diferente de las imágenes JPG principales
                 val currentThumbnailPath = document.thumbnailPath
                 val jpgPaths = document.getJpgPaths()
                 if (currentThumbnailPath != null && currentThumbnailPath.isNotBlank() && !jpgPaths.contains(currentThumbnailPath)) {
                      if (!fileService.deleteFile(currentThumbnailPath)) {
-                        // filesDeletedSuccessfully = false; // Opcional: considerar si esto es crítico
                      }
                 }
 
                 repository.deleteDocument(document)
 
                 if (filesDeletedSuccessfully) {
-                    updateUiState { copy(successMessage = "Documento '${document.name}' eliminado.") }
+                    _uiState.update { it.copy(successMessage = UiText.StringResource(R.string.delete_success_toast, document.name)) }
                 } else {
-                    updateUiState { copy(errorMessage = "Documento '${document.name}' eliminado de la BD, pero algunos archivos no se borraron.") }
+                    _uiState.update { it.copy(status = ScannerStatus.Error(UiText.StringResource(R.string.delete_partial_error, document.name))) }
                 }
 
             } catch (e: Exception) {
-                updateUiState { copy(errorMessage = "Error al eliminar '${document.name}': ${e.message ?: "Error desconocido"}") }
+                _uiState.update { it.copy(status = ScannerStatus.Error(UiText.StringResource(R.string.delete_error_toast, document.name, e.message ?: "Unknown"))) }
             }
         }
     }
@@ -415,10 +276,10 @@ class ScannerViewModel(
                 if (intent != null) {
                     context.startActivity(intent)
                 } else {
-                     updateUiState { copy(errorMessage = "No se puede crear la acción para ver el archivo.") }
+                     _uiState.update { it.copy(status = ScannerStatus.Error(UiText.StringResource(R.string.action_creation_error))) }
                 }
             } catch (e: Exception) {
-                updateUiState { copy(errorMessage = "Error al intentar ver el archivo: ${e.message ?: "Error desconocido"}") }
+                _uiState.update { it.copy(status = ScannerStatus.Error(UiText.StringResource(R.string.view_error, e.message ?: "Unknown"))) }
             }
         }
     }
@@ -428,19 +289,16 @@ class ScannerViewModel(
             try {
                 val intent = fileService.createShareIntent(context, filePath, mimeType)
                  if (intent != null) {
-                    context.startActivity(Intent.createChooser(intent, "Compartir ${filePath.substringAfterLast('/')}"))
+                    context.startActivity(Intent.createChooser(intent, context.getString(R.string.share_doc_content_description)))
                 } else {
-                     updateUiState { copy(errorMessage = "No se puede crear la acción para compartir el archivo.") }
+                     _uiState.update { it.copy(status = ScannerStatus.Error(UiText.StringResource(R.string.action_creation_error))) }
                 }
             } catch (e: Exception) {
-                updateUiState { copy(errorMessage = "Error al intentar compartir el archivo: ${e.message ?: "Error desconocido"}") }
+                _uiState.update { it.copy(status = ScannerStatus.Error(UiText.StringResource(R.string.share_error, e.message ?: "Unknown"))) }
             }
         }
     }
 
-    /**
-     * Comparte una página específica de un documento
-     */
     fun shareDocumentPage(context: Context, document: DocumentEntity, pageIndex: Int) {
         viewModelScope.launch {
             try {
@@ -449,17 +307,14 @@ class ScannerViewModel(
                     val jpgPath = jpgPaths[pageIndex]
                     shareFile(context, jpgPath, "image/jpeg")
                 } else {
-                    updateUiState { copy(errorMessage = "Página no válida: ${pageIndex + 1}") }
+                    _uiState.update { it.copy(status = ScannerStatus.Error(UiText.StringResource(R.string.invalid_page, pageIndex + 1))) }
                 }
             } catch (e: Exception) {
-                updateUiState { copy(errorMessage = "Error al compartir página: ${e.message ?: "Error desconocido"}") }
+                _uiState.update { it.copy(status = ScannerStatus.Error(UiText.StringResource(R.string.share_error, e.message ?: "Unknown"))) }
             }
         }
     }
     
-    /**
-     * Ve una página específica de un documento
-     */
     fun viewDocumentPage(context: Context, document: DocumentEntity, pageIndex: Int) {
         viewModelScope.launch {
             try {
@@ -468,10 +323,10 @@ class ScannerViewModel(
                     val jpgPath = jpgPaths[pageIndex]
                     viewFile(context, jpgPath, "image/jpeg")
                 } else {
-                    updateUiState { copy(errorMessage = "Página no válida: ${pageIndex + 1}") }
+                    _uiState.update { it.copy(status = ScannerStatus.Error(UiText.StringResource(R.string.invalid_page, pageIndex + 1))) }
                 }
             } catch (e: Exception) {
-                updateUiState { copy(errorMessage = "Error al ver página: ${e.message ?: "Error desconocido"}") }
+                _uiState.update { it.copy(status = ScannerStatus.Error(UiText.StringResource(R.string.view_error, e.message ?: "Unknown"))) }
             }
         }
     }
@@ -491,22 +346,18 @@ class ScannerViewModel(
                     if (path != null && mime != null) {
                         val intent = fileService.createShareIntent(context, path, mime)
                          if (intent != null) {
-                            context.startActivity(Intent.createChooser(intent, "Compartir ${it.name}"))
+                            context.startActivity(Intent.createChooser(intent, context.getString(R.string.share_doc_content_description)))
                         } else {
-                            updateUiState { copy(errorMessage = "No se pudo crear el intent para compartir.") }
+                            _uiState.update { it.copy(status = ScannerStatus.Error(UiText.StringResource(R.string.action_creation_error))) }
                         }
                     } else {
-                        updateUiState { copy(errorMessage = "No hay archivo disponible para compartir para '${it.name}'.") }
+                        _uiState.update { it.copy(status = ScannerStatus.Error(UiText.StringResource(R.string.no_files_available))) }
                     }
-                } ?: updateUiState { copy(errorMessage = "Documento no encontrado para compartir.") }
+                } ?: _uiState.update { it.copy(status = ScannerStatus.Error(UiText.StringResource(R.string.doc_not_found))) }
             } catch (e: Exception) {
-                updateUiState { copy(errorMessage = "Error al compartir: ${e.message ?: "Error desconocido"}") }
+                _uiState.update { it.copy(status = ScannerStatus.Error(UiText.StringResource(R.string.share_error, e.message ?: "Unknown"))) }
             }
         }
-    }
-
-    private fun updateUiState(update: ScannerUiState.() -> ScannerUiState) {
-        _uiState.value = _uiState.value.update()
     }
 
     override fun onCleared() {
@@ -537,16 +388,24 @@ enum class ScannerState {
     ERROR      
 }
 
+sealed interface ScannerStatus {
+    object Idle : ScannerStatus
+    object Ready : ScannerStatus
+    object Scanning : ScannerStatus
+    data class Processing(val progress: Float, val message: UiText) : ScannerStatus
+    object Saving : ScannerStatus
+    data class Error(val message: UiText) : ScannerStatus
+}
+
 data class ScannerUiState(
-    val isScannerReady: Boolean = false,
-    val isScanning: Boolean = false,
-    val isProcessing: Boolean = false,
-    val processingProgress: Float = 0f,
+    val status: ScannerStatus = ScannerStatus.Idle,
     val scannedPages: List<DocumentPage> = emptyList(),
     val generatedPdf: DocumentPdf? = null,
-    val errorMessage: String? = null,
-    val successMessage: String? = null,
-    val canRetry: Boolean = false,
-    val isLoading: Boolean = false,
-    val loadingMessage: String? = null
+    val successMessage: UiText? = null // Optional persistent success message
 )
+
+sealed class ScannerResult {
+    data class Success(val pages: List<DocumentPage>, val pdf: DocumentPdf?) : ScannerResult()
+    object Canceled : ScannerResult()
+    data class Error(val error: String) : ScannerResult()
+}

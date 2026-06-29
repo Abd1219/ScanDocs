@@ -18,14 +18,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import com.abdapps.scandocs.data.database.AppDatabase
 import com.abdapps.scandocs.data.repository.DocumentRepository
 import com.abdapps.scandocs.service.FileService
 import com.abdapps.scandocs.ui.components.DocumentScannerScreen
-import com.abdapps.scandocs.ui.components.HistoryScreen
 import com.abdapps.scandocs.ui.theme.ScanDocsTheme
 
 /**
@@ -112,33 +108,12 @@ fun MainScreen(
     modifier: Modifier = Modifier,
     scannerViewModel: ScannerViewModel
 ) {
-    // Configurar navegación
-    val navController = rememberNavController()
-    
-    NavHost(
-        navController = navController,
-        startDestination = "scanner",
-        modifier = modifier
-    ) {
-        // Pantalla principal del escáner
-        composable("scanner") {
-            DocumentScannerScreen(
-                viewModel = scannerViewModel,
-                onNavigateToHistory = { navController.navigate("history") }
-            )
-        }
-        
-        // Pantalla de historial
-        composable("history") {
-            HistoryScreen(
-                viewModel = scannerViewModel,
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-    }
-        // Este efecto se ejecuta una vez cuando se compone la pantalla
-        // Puedes agregar lógica de inicialización adicional aquí si es necesario
-    }
+    // Pantalla principal con el escáner e historial integrados
+    DocumentScannerScreen(
+        modifier = modifier,
+        viewModel = scannerViewModel
+    )
+}
 
 /**
  * Vista previa de la pantalla principal para desarrollo
