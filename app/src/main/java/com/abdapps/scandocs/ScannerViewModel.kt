@@ -135,6 +135,7 @@ class ScannerViewModel(
 
     fun clearError() {
         _uiState.update { it.copy(status = ScannerStatus.Ready) }
+        _scannerState.value = ScannerState.READY
     }
 
     fun clearSuccess() {
@@ -223,8 +224,11 @@ class ScannerViewModel(
                 
                 _uiState.update { it.copy(
                     status = ScannerStatus.Ready,
+                    scannedPages = emptyList(),
+                    generatedPdf = null,
                     successMessage = UiText.StringResource(R.string.save_success)
                 ) }
+                _scannerState.value = ScannerState.READY
             } catch (e: Exception) {
                 handleError(e)
             }
