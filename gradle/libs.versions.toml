@@ -44,6 +44,9 @@ room-compiler = { group = "androidx.room", name = "room-compiler", version.ref =
 navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 # Coil para cargar imágenes
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+# Material Icons Extended — todos los iconos de Material Design
+androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

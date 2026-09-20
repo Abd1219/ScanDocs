@@ -141,7 +141,7 @@ class FileService(private val context: Context) {
     private fun determineMimeTypeSafely(file: File): String? {
         val extension = file.extension
         if (extension.isNotEmpty()) {
-            return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.toLowerCase(Locale.ROOT))
+            return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.lowercase())
         }
         return null // Or a generic MIME type like "application/octet-stream"
     }

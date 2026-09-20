@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import com.abdapps.scandocs.data.entity.DocumentEntity
 import com.abdapps.scandocs.data.repository.DocumentRepository
@@ -30,7 +31,13 @@ class ScannerViewModel(
     private val _scannerState = MutableStateFlow(ScannerState.IDLE)
     val scannerState: StateFlow<ScannerState> = _scannerState.asStateFlow()
 
+    /** Flow con TODOS los documentos (para el historial completo) */
     val allDocuments: Flow<List<DocumentEntity>> = repository.allDocuments
+
+    /** Flow con únicamente los 3 documentos más recientes (para la pantalla de inicio) */
+    val recentDocuments: Flow<List<DocumentEntity>> = repository.allDocuments.map { list ->
+        list.take(3)
+    }
 
     private val _showSaveDialog = MutableStateFlow(false)
     val showSaveDialog: StateFlow<Boolean> = _showSaveDialog.asStateFlow()
@@ -51,19 +58,25 @@ class ScannerViewModel(
     }
 
     fun startScanning() {
-        if (_scannerState.value != ScannerState.READY) {
+        if (documentScanner == null) {
             updateUiState { copy(errorMessage = "El escáner no está listo") }
+            return
+        }
+        if (uiState.value.isScanning) {
             return
         }
         
         viewModelScope.launch {
             try {
                 _scannerState.value = ScannerState.SCANNING
-                updateUiState { copy(isScanning = true) }
+                updateUiState { copy(isScanning = true, errorMessage = null) }
                 
                 documentScanner?.startScan(
                     onResult = { result ->
                         handleScanResult(result)
+                    },
+                    onCancel = {
+                        handleScanCancel()
                     },
                     onError = { error ->
                         handleScanError(error)
@@ -71,6 +84,15 @@ class ScannerViewModel(
                 )
             } catch (e: Exception) {
                 handleScanError(e) // e.message se maneja en handleScanError
+            }
+        }
+    }
+
+    private fun handleScanCancel() {
+        viewModelScope.launch {
+            _scannerState.value = ScannerState.READY
+            updateUiState {
+                copy(isScanning = false)
             }
         }
     }
@@ -94,7 +116,7 @@ class ScannerViewModel(
 
     private fun handleScanError(error: Exception) {
         viewModelScope.launch {
-            _scannerState.value = ScannerState.ERROR
+            _scannerState.value = ScannerState.READY
             updateUiState {
                 copy(
                     isScanning = false,
@@ -106,6 +128,7 @@ class ScannerViewModel(
 
     fun clearError() {
         updateUiState { copy(errorMessage = null) }
+        _scannerState.value = ScannerState.READY
     }
 
     fun clearSuccess() {
@@ -129,6 +152,8 @@ class ScannerViewModel(
 
     fun dismissSaveDialog() {
         _showSaveDialog.value = false
+        _scannerState.value = ScannerState.READY
+        updateUiState { copy(isScanning = false) }
     }
 
     fun saveDocument() {
@@ -227,10 +252,14 @@ class ScannerViewModel(
         viewModelScope.launch {
             try {
                 val intent = fileService.createShareIntent(context, filePath, mimeType)
-                 if (intent != null) {
-                    context.startActivity(Intent.createChooser(intent, "Compartir ${filePath.substringAfterLast('/')}"))
+                if (intent != null) {
+                    val chooser = Intent.createChooser(intent, "Compartir ${filePath.substringAfterLast('/')}").apply {
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(chooser)
                 } else {
-                     updateUiState { copy(errorMessage = "No se puede crear la acción para compartir el archivo.") }
+                    updateUiState { copy(errorMessage = "No se puede crear la acción para compartir el archivo.") }
                 }
             } catch (e: Exception) {
                 updateUiState { copy(errorMessage = "Error al intentar compartir el archivo: ${e.message ?: "Error desconocido"}") }

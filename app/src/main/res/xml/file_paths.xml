@@ -1,9 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Directorio de documentos públicos -->
+    <!-- Directorios en almacenamiento externo público -->
     <external-path
-        name="documents"
+        name="external_scandocs_app"
+        path="Documents/ScanDocsApp/" />
+    <external-path
+        name="external_scandocs"
         path="Documents/ScanDocs/" />
+    <external-path
+        name="external_documents"
+        path="Documents/" />
+    <external-path
+        name="external_root"
+        path="." />
+    
+    <!-- Directorio de archivos externos específicos de la app -->
+    <external-files-path
+        name="app_external_files"
+        path="." />
     
     <!-- Directorio de archivos internos de la aplicación -->
     <files-path
@@ -13,5 +27,8 @@
     <!-- Directorio de caché de la aplicación -->
     <cache-path
         name="cache_files"
+        path="." />
+    <external-cache-path
+        name="external_cache_files"
         path="." />
 </paths>

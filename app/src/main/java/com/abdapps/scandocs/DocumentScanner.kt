@@ -51,6 +51,9 @@ class DocumentScanner(
     // Callback para manejar el resultado del escaneo
     private var onScanResult: ((DocumentScanResult) -> Unit)? = null
     
+    // Callback para manejar cancelación del usuario
+    private var onCancel: (() -> Unit)? = null
+
     // Callback para manejar errores
     private var onError: ((Exception) -> Unit)? = null
     
@@ -64,11 +67,17 @@ class DocumentScanner(
         scannerLauncher = activity.registerForActivityResult(
             ActivityResultContracts.StartIntentSenderForResult()
         ) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                handleScanResult(result.data)
-            } else {
-                // Usuario canceló el escaneo
-                onError?.invoke(Exception("Escaneo cancelado por el usuario"))
+            when (result.resultCode) {
+                Activity.RESULT_OK -> {
+                    handleScanResult(result.data)
+                }
+                Activity.RESULT_CANCELED -> {
+                    // Usuario canceló o presionó atrás de forma normal
+                    onCancel?.invoke()
+                }
+                else -> {
+                    onError?.invoke(Exception("Escaneo no completado (código: ${result.resultCode})"))
+                }
             }
         }
     }
@@ -77,13 +86,16 @@ class DocumentScanner(
      * Inicia el escaneo de documentos
      * 
      * @param onResult Callback que se ejecuta cuando se completa el escaneo
+     * @param onCancel Callback opcional que se ejecuta cuando el usuario cancela
      * @param onError Callback que se ejecuta cuando ocurre un error
      */
     fun startScan(
         onResult: (DocumentScanResult) -> Unit,
+        onCancel: (() -> Unit)? = null,
         onError: (Exception) -> Unit
     ) {
         this.onScanResult = onResult
+        this.onCancel = onCancel
         this.onError = onError
         
         try {
