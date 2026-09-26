@@ -122,7 +122,7 @@ fun DocumentItemCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    if (document.pdfPath.isNotBlank() || document.jpgPath.isNotBlank()) {
+                    if (document.pdfPath.isNotBlank() || document.allJpgPaths.isNotEmpty()) {
                         Text(
                             text = "•",
                             style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
@@ -133,8 +133,9 @@ fun DocumentItemCard(
                     if (document.pdfPath.isNotBlank()) {
                         FormatBadge(label = "PDF", isPdf = true)
                     }
-                    if (document.jpgPath.isNotBlank()) {
-                        FormatBadge(label = "JPG", isPdf = false)
+                    if (document.allJpgPaths.isNotEmpty()) {
+                        val jpgCount = document.allJpgPaths.size
+                        FormatBadge(label = if (jpgCount > 1) "JPG ×$jpgCount" else "JPG", isPdf = false)
                     }
                 }
             }

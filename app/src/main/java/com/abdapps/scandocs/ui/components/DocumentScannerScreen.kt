@@ -224,6 +224,10 @@ fun DocumentScannerScreen(
             onFileChosen = { filePath, mimeType ->
                 viewModel.shareFile(context, filePath, mimeType)
                 showShareDialog = null
+            },
+            onJpgsChosen = { paths, name ->
+                viewModel.shareJpgFiles(context, paths, name)
+                showShareDialog = null
             }
         )
     }

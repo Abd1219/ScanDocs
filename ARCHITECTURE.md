@@ -202,12 +202,12 @@ suspend fun deleteDocumentById(id: Long)
 **Base de datos activa:** `AppDatabase` → archivo `scandocs_database`
 
 ```kotlin
-@Database(entities = [DocumentEntity::class], version = 1, exportSchema = false)
+@Database(entities = [DocumentEntity::class], version = 2, exportSchema = false)
 @TypeConverters(DateTimeConverters::class)
 abstract class AppDatabase : RoomDatabase()
 ```
 
-> Usa `fallbackToDestructiveMigration()` — **los datos se pierden en cambios de esquema**.
+La migración `MIGRATION_1_2` agrega `jpgPaths` y conserva los registros existentes. Los documentos previos mantienen la primera imagen en `jpgPath`; como Room no guardaba las demás rutas, el historial no puede compartir retroactivamente todas sus páginas.
 
 **Entidad activa:**
 
@@ -219,9 +219,12 @@ data class DocumentEntity(
     val jpgPath: String,
     val pdfPath: String,
     val createdAt: java.util.Date,
-    val thumbnailPath: String? = null
+    val thumbnailPath: String? = null,
+    val jpgPaths: String = "" // Array JSON; vacío en registros antiguos
 )
 ```
+
+`allJpgPaths` decodifica `jpgPaths` y usa `jpgPath` como respaldo para registros antiguos.
 
 **TypeConverters activos (`DateTimeConverters`):**
 - `java.util.Date ↔ Long` (epoch ms) — **usado por `DocumentEntity.createdAt`**
@@ -254,6 +257,7 @@ Environment.DIRECTORY_DOCUMENTS/ScanDocsApp/
 | `getUriForFile(file)` | `FileProvider.getUriForFile(...)` → `content://` URI |
 | `createViewIntent(context, filePath, mimeType)` | `ACTION_VIEW` + permisos URI |
 | `createShareIntent(context, filePath, mimeType)` | `ACTION_SEND` + chooser |
+| `createShareIntent(context, filePaths)` | `ACTION_SEND_MULTIPLE` + `EXTRA_STREAM` y permisos para todos los URI JPG |
 | `createThumbnail(jpgPath)` | **Stub** — devuelve `jpgPath` sin procesar |
 
 > `saveJpgFile` y `savePdfFile` están anotados con `@RequiresApi(Build.VERSION_CODES.O)`.  
@@ -301,7 +305,7 @@ ScannerViewModel.saveDocument()
   │     └── retorna ruta absoluta al JPG
   ├── FileService.savePdfFile(pdf.uri, name)
   │     └── retorna ruta absoluta al PDF
-  ├── Construye DocumentEntity(name, jpgPath, pdfPath, createdAt=Date(), thumbnailPath=jpgPath)
+  ├── Construye DocumentEntity con jpgPath (primera página), jpgPaths (todas) y pdfPath
   └── DocumentRepository.insertDocument(entity)
          │  → DocumentDao → Room → SQLite INSERT
          ▼
@@ -322,7 +326,7 @@ Usuario abre DropdownMenu en DocumentItemCard
   → toca "Ver documento" o "Compartir"
          │
          ▼
-UI muestra ChooseFileDialog (PDF o JPG)
+UI muestra ChooseFileDialog (PDF, primera imagen JPG o todas las páginas JPG al compartir)
   Usuario elige formato
          │
          ▼
@@ -340,6 +344,8 @@ ScannerViewModel.shareFile(context, filePath, mimeType)
   FileService.createShareIntent(...)
     → Intent(ACTION_SEND) + EXTRA_STREAM + permisos URI
   context.startActivity(Intent.createChooser(...))
+
+Para compartir todas las páginas JPG, la UI llama `ScannerViewModel.shareJpgFiles(context, paths, documentName)`. El servicio crea un `ACTION_SEND_MULTIPLE` con todos los URI `content://` y permisos de lectura.
 ```
 
 ### 3.3 Eliminar un documento
@@ -351,7 +357,7 @@ Usuario toca "Eliminar" → ConfirmDeleteDialog
          ▼
 ScannerViewModel.deleteDocument(document)
   FileService.deleteFile(document.pdfPath)
-  FileService.deleteFile(document.jpgPath)
+  FileService.deleteFile() para cada ruta de `document.allJpgPaths`
   FileService.deleteFile(document.thumbnailPath)
   DocumentRepository.deleteDocument(document)
     → DocumentDao.deleteDocument() → SQLite DELETE

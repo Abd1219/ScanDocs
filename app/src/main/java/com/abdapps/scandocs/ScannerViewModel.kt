@@ -17,6 +17,7 @@ import com.abdapps.scandocs.service.FileService
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import org.json.JSONArray
 
 class ScannerViewModel(
     private val repository: DocumentRepository,
@@ -177,6 +178,7 @@ class ScannerViewModel(
                 val document = DocumentEntity(
                     name = name,
                     jpgPath = jpgPaths.firstOrNull() ?: "",
+                    jpgPaths = JSONArray(jpgPaths).toString(),
                     pdfPath = pdfPath,
                     createdAt = Date(),
                     thumbnailPath = jpgPaths.firstOrNull() ?: ""
@@ -208,12 +210,12 @@ class ScannerViewModel(
                         filesDeletedSuccessfully = false
                     }
                 }
-                if (document.jpgPath.isNotBlank()) {
-                    if (!fileService.deleteFile(document.jpgPath)) {
+                document.allJpgPaths.forEach { jpgPath ->
+                    if (!fileService.deleteFile(jpgPath)) {
                         filesDeletedSuccessfully = false
                     }
                 }
-                if (document.thumbnailPath!!.isNotBlank() && document.thumbnailPath != document.jpgPath) {
+                if (!document.thumbnailPath.isNullOrBlank() && document.thumbnailPath !in document.allJpgPaths) {
                      if (!fileService.deleteFile(document.thumbnailPath)) {
                         // filesDeletedSuccessfully = false; // Menos crítico
                      }
@@ -263,6 +265,25 @@ class ScannerViewModel(
                 }
             } catch (e: Exception) {
                 updateUiState { copy(errorMessage = "Error al intentar compartir el archivo: ${e.message ?: "Error desconocido"}") }
+            }
+        }
+    }
+
+    fun shareJpgFiles(context: Context, filePaths: List<String>, documentName: String) {
+        viewModelScope.launch {
+            try {
+                val intent = fileService.createShareIntent(context, filePaths)
+                if (intent != null) {
+                    val chooser = Intent.createChooser(intent, "Compartir imágenes de $documentName").apply {
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    context.startActivity(chooser)
+                } else {
+                    updateUiState { copy(errorMessage = "No se encontraron imágenes JPG para compartir.") }
+                }
+            } catch (e: Exception) {
+                updateUiState { copy(errorMessage = "Error al compartir las imágenes: ${e.message ?: "Error desconocido"}") }
             }
         }
     }

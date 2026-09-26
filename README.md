@@ -25,7 +25,7 @@
 |---|---|
 | **Escáner ML Kit** | Detección automática de bordes, corrección de perspectiva, filtros — hasta 10 páginas por sesión |
 | **Importar desde galería** | El propio escáner de ML Kit permite elegir imágenes de la galería |
-| **Exportación dual** | Genera simultáneamente un PDF multipágina y un JPEG por página |
+| **Exportación dual** | Genera un PDF multipágina y guarda un JPEG por página; desde el historial se pueden compartir todas las imágenes JPG juntas |
 | **Historial completo** | Pantalla dedicada con búsqueda en tiempo real (filtrado en memoria) |
 | **Compartición segura** | `FileProvider` + `content://` — compatible con cualquier app externa |
 | **Persistencia local** | Room + Kotlin Flows reactivos |
@@ -72,7 +72,8 @@ Usuario toca FAB
       → handleScanResult() guarda en uiState
         → SaveDocumentDialog (usuario edita nombre)
           → saveDocument() → FileService escribe JPG/PDF
-            → DocumentRepository.insertDocument()
+            → Room conserva la ruta del PDF y las rutas de todos los JPG
+              → DocumentRepository.insertDocument()
               → Room emite Flow → UI re-compone
 ```
 
@@ -137,6 +138,7 @@ Tabla: **`documents`**
 | `id` | INTEGER PK AUTOINCREMENT | |
 | `name` | TEXT | Nombre dado por el usuario |
 | `jpgPath` | TEXT | Ruta absoluta al primer JPEG |
+| `jpgPaths` | TEXT | Array JSON con todas las rutas JPG; registros antiguos usan `jpgPath` como respaldo |
 | `pdfPath` | TEXT | Ruta absoluta al PDF |
 | `createdAt` | INTEGER | Epoch ms vía `DateTimeConverters` |
 | `thumbnailPath` | TEXT (nullable) | Actualmente igual a `jpgPath` (stub) |
@@ -184,11 +186,13 @@ Tabla: **`documents`**
 | Historial con búsqueda | ✅ Funcional |
 | Compartición / Vista de archivos | ✅ Funcional |
 | Eliminación de documentos | ✅ Funcional |
+| Compartir todas las páginas JPG | ✅ Disponible para documentos guardados con la versión actual |
+| JPG de documentos guardados antes de la actualización | ⚠️ Room solo conocía la primera ruta y no permite recuperarlas desde el historial |
 | Thumbnails reales | ⚠️ Stub — devuelve el path del JPG original |
 | Código legacy (segunda pila BD) | ⚠️ Presente pero inactivo |
 | Inyección de dependencias | ⚠️ Manual (sin Hilt) |
 | Strings en recursos XML | ❌ Hardcodeadas en Composables |
-| Tests unitarios | ❌ Sin implementar |
+| Tests unitarios | ⚠️ Solo está la prueba de ejemplo de Android Studio; falta cobertura de lógica de la app |
 
 ---
 

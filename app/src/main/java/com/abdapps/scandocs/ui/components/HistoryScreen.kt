@@ -257,6 +257,10 @@ fun HistoryScreen(
                 onFileChosen = { filePath, mimeType ->
                     viewModel.shareFile(context, filePath, mimeType)
                     showShareDialog = null
+                },
+                onJpgsChosen = { paths, name ->
+                    viewModel.shareJpgFiles(context, paths, name)
+                    showShareDialog = null
                 }
             )
         }
@@ -352,7 +356,8 @@ fun ChooseFileDialog(
     document: DocumentEntity,
     actionType: String,
     onDismiss: () -> Unit,
-    onFileChosen: (filePath: String, mimeType: String) -> Unit
+    onFileChosen: (filePath: String, mimeType: String) -> Unit,
+    onJpgsChosen: ((paths: List<String>, documentName: String) -> Unit)? = null
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -383,19 +388,31 @@ fun ChooseFileDialog(
                         )
                     }
                 }
-                if (document.jpgPath.isNotBlank()) {
+                if (document.allJpgPaths.isNotEmpty()) {
                     TextButton(
-                        onClick = { onFileChosen(document.jpgPath, "image/jpeg") },
+                        onClick = { onFileChosen(document.allJpgPaths.first(), "image/jpeg") },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "JPG / Imagen",
+                            text = if (document.allJpgPaths.size > 1) "Primera imagen JPG" else "JPG / Imagen",
                             style = MaterialTheme.typography.labelLarge,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
-                if (document.jpgPath.isBlank() && document.pdfPath.isBlank()) {
+                if (actionType == "Compartir" && document.allJpgPaths.size > 1 && onJpgsChosen != null) {
+                    TextButton(
+                        onClick = { onJpgsChosen(document.allJpgPaths, document.name) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Todas las imágenes JPG (${document.allJpgPaths.size})",
+                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+                if (document.allJpgPaths.isEmpty() && document.pdfPath.isBlank()) {
                     Text(
                         "No hay archivos disponibles para este documento.",
                         style = MaterialTheme.typography.bodyMedium,
@@ -513,4 +530,3 @@ fun HistoryScreenContentPreview() {
         }
     }
 }
-

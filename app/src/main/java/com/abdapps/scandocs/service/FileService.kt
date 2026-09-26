@@ -1,6 +1,7 @@
 package com.abdapps.scandocs.service
 
 import android.content.Context
+import android.content.ClipData
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -134,6 +135,24 @@ class FileService(private val context: Context) {
             putExtra(Intent.EXTRA_STREAM, contentUri)
             type = actualMimeType
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+    }
+
+    /** Crea un intent para compartir todas las páginas JPG de un documento. */
+    fun createShareIntent(context: Context, filePaths: List<String>): Intent? {
+        val uris = filePaths.distinct().mapNotNull { path ->
+            val file = File(path)
+            if (file.exists()) getUriForFile(file) else null
+        }
+        if (uris.isEmpty()) return null
+
+        return Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+            type = "image/jpeg"
+            putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(uris))
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            clipData = ClipData.newUri(context.contentResolver, "Páginas JPG", uris.first()).also { clip ->
+                uris.drop(1).forEach { uri -> clip.addItem(ClipData.Item(uri)) }
+            }
         }
     }
     

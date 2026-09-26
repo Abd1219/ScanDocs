@@ -59,7 +59,7 @@ Mapa completo de cada archivo del proyecto: propósito, estado (activo/legacy/pl
 
 | Archivo | Estado | Descripción |
 |---|---|---|
-| [`DocumentEntity.kt`](../app/src/main/java/com/abdapps/scandocs/data/entity/DocumentEntity.kt) | ✅ ACTIVO | Entidad Room para la tabla `documents`. Campos: `id`, `name`, `jpgPath`, `pdfPath`, `createdAt: Date`, `thumbnailPath: String?` |
+| [`DocumentEntity.kt`](../app/src/main/java/com/abdapps/scandocs/data/entity/DocumentEntity.kt) | ✅ ACTIVO | Entidad Room para `documents`. `jpgPath` conserva la primera página y `jpgPaths` guarda como JSON todas las páginas JPG; `allJpgPaths` da compatibilidad a registros antiguos |
 | [`ScannedDocument.kt`](../app/src/main/java/com/abdapps/scandocs/data/entity/ScannedDocument.kt) | ⚠️ LEGACY | Entidad más rica (`pageCount`, `fileSize`, `isFavorite`, `tags`) para la tabla `scanned_documents`. No conectada a la app activa |
 
 ---
