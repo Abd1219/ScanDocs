@@ -235,6 +235,45 @@ class ScannerViewModel(
         }
     }
 
+    fun renameDocument(document: DocumentEntity, newName: String) {
+        val trimmedName = newName.trim()
+        if (trimmedName.isBlank()) {
+            updateUiState { copy(errorMessage = "El nombre del documento no puede estar vacío.") }
+            return
+        }
+        if (trimmedName.any { it in "\\/:*?\"<>|" }) {
+            updateUiState { copy(errorMessage = "El nombre contiene caracteres no permitidos.") }
+            return
+        }
+        if (trimmedName == document.name) return
+
+        viewModelScope.launch {
+            try {
+                val safeFileName = trimmedName.replace(Regex("\\s+"), "_")
+                val renamedPdfPath = document.pdfPath.takeIf(String::isNotBlank)?.let { path ->
+                    fileService.renameFile(path, "${safeFileName}_${document.id}")
+                        ?: throw IllegalStateException("No se pudo renombrar el PDF")
+                } ?: ""
+                val renamedJpgPaths = document.allJpgPaths.mapIndexed { index, path ->
+                    fileService.renameFile(path, "${safeFileName}_${document.id}_pagina${index + 1}")
+                        ?: throw IllegalStateException("No se pudo renombrar una imagen")
+                }
+
+                val updatedDocument = document.copy(
+                    name = trimmedName,
+                    pdfPath = renamedPdfPath,
+                    jpgPath = renamedJpgPaths.firstOrNull() ?: "",
+                    jpgPaths = JSONArray(renamedJpgPaths).toString(),
+                    thumbnailPath = renamedJpgPaths.firstOrNull()
+                )
+                repository.updateDocument(updatedDocument)
+                updateUiState { copy(successMessage = "Documento renombrado a '$trimmedName'.") }
+            } catch (e: Exception) {
+                updateUiState { copy(errorMessage = "No se pudo renombrar el documento: ${e.message ?: "Error desconocido"}") }
+            }
+        }
+    }
+
     fun viewFile(context: Context, filePath: String, mimeType: String) {
         viewModelScope.launch {
             try {

@@ -89,6 +89,18 @@ class FileService(private val context: Context) {
         }
     }
 
+    /**
+     * Renombra un archivo conservando su extensión. Devuelve la ruta nueva o null si no se pudo renombrar.
+     */
+    fun renameFile(filePath: String, newBaseName: String): String? {
+        val source = File(filePath)
+        if (!source.exists() || newBaseName.isBlank()) return null
+
+        val target = File(source.parentFile, "${newBaseName}.${source.extension}")
+        if (target.exists() || !source.renameTo(target)) return null
+        return target.absolutePath
+    }
+
     private fun getUriForFile(file: File): Uri? {
         return try {
             FileProvider.getUriForFile(
@@ -155,7 +167,7 @@ class FileService(private val context: Context) {
             }
         }
     }
-    
+
     // Renamed and ensured Locale.ROOT is used correctly
     private fun determineMimeTypeSafely(file: File): String? {
         val extension = file.extension

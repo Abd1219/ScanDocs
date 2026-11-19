@@ -24,9 +24,10 @@
 | Función | Descripción |
 |---|---|
 | **Escáner ML Kit** | Detección automática de bordes, corrección de perspectiva, filtros — hasta 10 páginas por sesión |
-| **Importar desde galería** | El propio escáner de ML Kit permite elegir imágenes de la galería |
-| **Exportación dual** | Genera un PDF multipágina y guarda un JPEG por página; desde el historial se pueden compartir todas las imágenes JPG juntas |
+| **Importar desde galería** | Disponible dentro de la interfaz del escáner de ML Kit, después de iniciar “Escanear” |
+| **Exportación dual** | Genera un PDF multipágina y guarda un JPEG por página; desde el historial, “Compartir imagen” envía juntas todas las páginas JPG |
 | **Historial completo** | Pantalla dedicada con búsqueda en tiempo real (filtrado en memoria) |
+| **Editar nombre** | Renombra el documento guardado y sus archivos PDF/JPG asociados desde el menú de opciones |
 | **Compartición segura** | `FileProvider` + `content://` — compatible con cualquier app externa |
 | **Persistencia local** | Room + Kotlin Flows reactivos |
 | **Tema oscuro / claro** | Material 3 con paleta carbón + esmeralda/teal |
@@ -86,7 +87,7 @@ Ver diagrama detallado en [`ARCHITECTURE.md`](ARCHITECTURE.md).
 ```
 app/src/main/java/com/abdapps/scandocs/
 ├── MainActivity.kt              # Actividad principal, NavHost, NavigationBar
-├── ScannerViewModel.kt          # ViewModel central: StateFlow, lógica de escaneo/guardado/borrado
+├── ScannerViewModel.kt          # ViewModel central: StateFlow, lógica de escaneo/guardado/renombrado/borrado
 ├── DocumentScanner.kt           # Wrapper de GmsDocumentScanner (ML Kit)
 ├── PermissionHelper.kt          # Utilidades de permisos (actualmente no instanciado activamente)
 │
@@ -136,7 +137,7 @@ Tabla: **`documents`**
 | Columna | Tipo SQLite | Notas |
 |---|---|---|
 | `id` | INTEGER PK AUTOINCREMENT | |
-| `name` | TEXT | Nombre dado por el usuario |
+| `name` | TEXT | Nombre dado por el usuario; se puede editar después de guardar |
 | `jpgPath` | TEXT | Ruta absoluta al primer JPEG |
 | `jpgPaths` | TEXT | Array JSON con todas las rutas JPG; registros antiguos usan `jpgPath` como respaldo |
 | `pdfPath` | TEXT | Ruta absoluta al PDF |
@@ -186,8 +187,9 @@ Tabla: **`documents`**
 | Historial con búsqueda | ✅ Funcional |
 | Compartición / Vista de archivos | ✅ Funcional |
 | Eliminación de documentos | ✅ Funcional |
+| Edición de nombre | ✅ Funcional; actualiza el registro y los archivos físicos PDF/JPG |
 | Compartir todas las páginas JPG | ✅ Disponible para documentos guardados con la versión actual |
-| JPG de documentos guardados antes de la actualización | ⚠️ Room solo conocía la primera ruta y no permite recuperarlas desde el historial |
+| JPG de documentos guardados antes de la actualización | ⚠️ Room solo conocía la primera ruta y no permite acceder a todas desde el historial |
 | Thumbnails reales | ⚠️ Stub — devuelve el path del JPG original |
 | Código legacy (segunda pila BD) | ⚠️ Presente pero inactivo |
 | Inyección de dependencias | ⚠️ Manual (sin Hilt) |

@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
-import androidx.compose.material.icons.outlined.AddPhotoAlternate
 import androidx.compose.material.icons.outlined.DocumentScanner
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Search
@@ -45,10 +44,6 @@ import com.abdapps.scandocs.ui.theme.QuickActionDocsBgDark
 import com.abdapps.scandocs.ui.theme.QuickActionDocsBgLight
 import com.abdapps.scandocs.ui.theme.QuickActionDocsIconDark
 import com.abdapps.scandocs.ui.theme.QuickActionDocsIconLight
-import com.abdapps.scandocs.ui.theme.QuickActionGalleryBgDark
-import com.abdapps.scandocs.ui.theme.QuickActionGalleryBgLight
-import com.abdapps.scandocs.ui.theme.QuickActionGalleryIconDark
-import com.abdapps.scandocs.ui.theme.QuickActionGalleryIconLight
 import com.abdapps.scandocs.ui.theme.QuickActionScanBgDark
 import com.abdapps.scandocs.ui.theme.QuickActionScanBgLight
 import com.abdapps.scandocs.ui.theme.QuickActionScanIconDark
@@ -103,7 +98,6 @@ fun HomeSearchBar(
 @Composable
 fun QuickActionsSection(
     onScanClick: () -> Unit,
-    onImportClick: () -> Unit,
     onViewAllClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -132,17 +126,7 @@ fun QuickActionsSection(
                 onClick = onScanClick
             )
 
-            // 2. Importar imagen (Galería)
-            QuickActionItem(
-                icon = Icons.Outlined.AddPhotoAlternate,
-                label = "Importar",
-                containerColor = if (isDark) QuickActionGalleryBgDark else QuickActionGalleryBgLight,
-                iconColor = if (isDark) QuickActionGalleryIconDark else QuickActionGalleryIconLight,
-                isProminent = false,
-                onClick = onImportClick
-            )
-
-            // 3. Documentos (Historial completo)
+            // 2. Documentos (Historial completo)
             QuickActionItem(
                 icon = Icons.Outlined.FolderOpen,
                 label = "Documentos",

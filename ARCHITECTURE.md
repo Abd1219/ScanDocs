@@ -253,6 +253,7 @@ Environment.DIRECTORY_DOCUMENTS/ScanDocsApp/
 |---|---|
 | `saveJpgFile(uri, fileName)` | Lee URI de ML Kit via `ContentResolver`, escribe JPEG |
 | `savePdfFile(uri, fileName)` | Lee URI de ML Kit via `ContentResolver`, escribe PDF |
+| `renameFile(filePath, newBaseName)` | Renombra el archivo físico y conserva su extensión |
 | `deleteFile(filePath)` | Elimina archivo físico, maneja `SecurityException` |
 | `getUriForFile(file)` | `FileProvider.getUriForFile(...)` → `content://` URI |
 | `createViewIntent(context, filePath, mimeType)` | `ACTION_VIEW` + permisos URI |
@@ -319,14 +320,32 @@ recentDocuments / allDocuments actualizados
 UI re-compone → nueva tarjeta visible en Home y en History
 ```
 
-### 3.2 Ver / Compartir un documento
+### 3.2 Renombrar un documento guardado
+
+```
+Usuario abre el menú de una tarjeta → “Editar nombre”
+         │
+         ▼
+RenameDocumentDialog valida que el nombre no esté vacío
+         │ toca “Guardar”
+         ▼
+ScannerViewModel.renameDocument()
+  ├── rechaza caracteres no permitidos para nombres de archivo
+  ├── FileService.renameFile() renombra PDF y cada página JPG
+  └── DocumentRepository.updateDocument() actualiza name y todas las rutas
+         │
+         ▼
+Room emite la entidad actualizada → Home e Historial se recomponen
+```
+
+### 3.3 Ver / Compartir un documento
 
 ```
 Usuario abre DropdownMenu en DocumentItemCard
   → toca "Ver documento" o "Compartir"
          │
          ▼
-UI muestra ChooseFileDialog (PDF, primera imagen JPG o todas las páginas JPG al compartir)
+UI muestra ChooseFileDialog (PDF o imagen JPG; al compartir, la opción JPG envía todas las páginas)
   Usuario elige formato
          │
          ▼
@@ -490,7 +509,6 @@ Los archivos se guardan en almacenamiento externo público:
 | Acción | Fondo Claro | Fondo Oscuro |
 |---|---|---|
 | Escanear | `#D1F2EB` | `#14302A` |
-| Galería | `#E3F2FD` | `#162538` |
 | Documentos | `#EDE7F6` | `#221C38` |
 
 ---

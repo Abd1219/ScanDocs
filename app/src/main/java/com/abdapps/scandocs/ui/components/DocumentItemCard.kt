@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Share
@@ -67,6 +68,7 @@ fun DocumentItemCard(
     document: DocumentEntity,
     onViewClick: () -> Unit,
     onShareClick: () -> Unit,
+    onRenameClick: () -> Unit,
     onDeleteClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -183,6 +185,20 @@ fun DocumentItemCard(
                         onClick = {
                             menuExpanded = false
                             onShareClick()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Editar nombre") },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Filled.Edit,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        onClick = {
+                            menuExpanded = false
+                            onRenameClick()
                         }
                     )
                     DropdownMenuItem(

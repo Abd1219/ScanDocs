@@ -74,6 +74,7 @@ fun DocumentScannerScreen(
     // Diálogos de acción
     var showViewDialog by remember { mutableStateOf<DocumentEntity?>(null) }
     var showShareDialog by remember { mutableStateOf<DocumentEntity?>(null) }
+    var showRenameDialog by remember { mutableStateOf<DocumentEntity?>(null) }
     var showDeleteDialog by remember { mutableStateOf<DocumentEntity?>(null) }
 
     // Notificaciones de estado (Snackbar)
@@ -145,7 +146,6 @@ fun DocumentScannerScreen(
             // ─── 2. ACCIONES RÁPIDAS COHESIONADAS ───────────────────
             QuickActionsSection(
                 onScanClick = { viewModel.startScanning() },
-                onImportClick = { viewModel.startScanning() },
                 onViewAllClick = onNavigateToHistory
             )
 
@@ -182,6 +182,7 @@ fun DocumentScannerScreen(
                                 document = doc,
                                 onViewClick = { showViewDialog = doc },
                                 onShareClick = { showShareDialog = doc },
+                                onRenameClick = { showRenameDialog = doc },
                                 onDeleteClick = { showDeleteDialog = doc }
                             )
                         }
@@ -239,6 +240,17 @@ fun DocumentScannerScreen(
             onConfirm = {
                 viewModel.deleteDocument(doc)
                 showDeleteDialog = null
+            }
+        )
+    }
+
+    showRenameDialog?.let { doc ->
+        RenameDocumentDialog(
+            currentName = doc.name,
+            onDismiss = { showRenameDialog = null },
+            onConfirm = { newName ->
+                viewModel.renameDocument(doc, newName)
+                showRenameDialog = null
             }
         )
     }

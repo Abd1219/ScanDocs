@@ -103,6 +103,7 @@ fun HistoryScreen(
     // Estados para diálogos
     var showViewDialog by remember { mutableStateOf<DocumentEntity?>(null) }
     var showShareDialog by remember { mutableStateOf<DocumentEntity?>(null) }
+    var showRenameDialog by remember { mutableStateOf<DocumentEntity?>(null) }
     var showDeleteDialog by remember { mutableStateOf<DocumentEntity?>(null) }
 
     Scaffold(
@@ -224,6 +225,7 @@ fun HistoryScreen(
                                     document = document,
                                     onViewClick = { showViewDialog = document },
                                     onShareClick = { showShareDialog = document },
+                                    onRenameClick = { showRenameDialog = document },
                                     onDeleteClick = { showDeleteDialog = document }
                                 )
                             }
@@ -265,6 +267,18 @@ fun HistoryScreen(
             )
         }
 
+        // ─── DIÁLOGO: Editar nombre ──────────────────────────────
+        showRenameDialog?.let { doc ->
+            RenameDocumentDialog(
+                currentName = doc.name,
+                onDismiss = { showRenameDialog = null },
+                onConfirm = { newName ->
+                    viewModel.renameDocument(doc, newName)
+                    showRenameDialog = null
+                }
+            )
+        }
+
         // ─── DIÁLOGO: Confirmar eliminación ──────────────────────
         showDeleteDialog?.let { doc ->
             ConfirmDeleteDialog(
@@ -277,6 +291,45 @@ fun HistoryScreen(
             )
         }
     }
+}
+
+@Composable
+fun RenameDocumentDialog(
+    currentName: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var name by remember(currentName) { mutableStateOf(currentName) }
+    val isValid = name.trim().isNotEmpty()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(24.dp),
+        title = { Text("Editar nombre") },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Nombre del documento") },
+                singleLine = true,
+                isError = name.isNotEmpty() && !isValid,
+                supportingText = {
+                    if (name.isNotEmpty() && !isValid) Text("Escribe un nombre válido.")
+                }
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(name.trim()) },
+                enabled = isValid
+            ) {
+                Text("Guardar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
+        }
+    )
 }
 
 // ==========================================
@@ -388,25 +441,25 @@ fun ChooseFileDialog(
                         )
                     }
                 }
-                if (document.allJpgPaths.isNotEmpty()) {
+                if (document.allJpgPaths.isNotEmpty() && actionType == "Ver") {
                     TextButton(
                         onClick = { onFileChosen(document.allJpgPaths.first(), "image/jpeg") },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = if (document.allJpgPaths.size > 1) "Primera imagen JPG" else "JPG / Imagen",
+                            text = "Imagen JPG",
                             style = MaterialTheme.typography.labelLarge,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
                 }
-                if (actionType == "Compartir" && document.allJpgPaths.size > 1 && onJpgsChosen != null) {
+                if (actionType == "Compartir" && document.allJpgPaths.isNotEmpty() && onJpgsChosen != null) {
                     TextButton(
                         onClick = { onJpgsChosen(document.allJpgPaths, document.name) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "Todas las imágenes JPG (${document.allJpgPaths.size})",
+                            text = "Compartir imagen",
                             style = MaterialTheme.typography.labelLarge,
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -522,6 +575,7 @@ fun HistoryScreenContentPreview() {
                             document = doc,
                             onViewClick = {},
                             onShareClick = {},
+                            onRenameClick = {},
                             onDeleteClick = {}
                         )
                     }

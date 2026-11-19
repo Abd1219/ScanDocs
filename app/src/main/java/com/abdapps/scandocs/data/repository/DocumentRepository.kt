@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.Flow
 class DocumentRepository(private val documentDao: DocumentDao) {
     
     val allDocuments: Flow<List<DocumentEntity>> = documentDao.getAllDocuments()
+
+    suspend fun getAllDocumentsSnapshot(): List<DocumentEntity> = documentDao.getAllDocumentsSnapshot()
     
     suspend fun getDocumentById(id: Long): DocumentEntity? {
         return documentDao.getDocumentById(id)

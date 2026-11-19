@@ -16,6 +16,9 @@ import kotlinx.coroutines.flow.Flow
 interface DocumentDao {
     @Query("SELECT * FROM documents ORDER BY createdAt DESC")
     fun getAllDocuments(): Flow<List<DocumentEntity>>
+
+    @Query("SELECT * FROM documents ORDER BY createdAt DESC")
+    suspend fun getAllDocumentsSnapshot(): List<DocumentEntity>
     
     @Query("SELECT * FROM documents WHERE id = :id")
     suspend fun getDocumentById(id: Long): DocumentEntity?

@@ -68,7 +68,7 @@ Mapa completo de cada archivo del proyecto: propósito, estado (activo/legacy/pl
 
 | Archivo | Estado | Operaciones |
 |---|---|---|
-| [`DocumentDao.kt`](../app/src/main/java/com/abdapps/scandocs/data/dao/DocumentDao.kt) | ✅ ACTIVO | `getAllDocuments(): Flow<List<DocumentEntity>>` (ORDER BY createdAt DESC), `getDocumentById`, `insertDocument`, `updateDocument`, `deleteDocument`, `deleteDocumentById` |
+| [`DocumentDao.kt`](../app/src/main/java/com/abdapps/scandocs/data/dao/DocumentDao.kt) | ✅ ACTIVO | `getAllDocuments(): Flow<List<DocumentEntity>>`, `getAllDocumentsSnapshot`, `getDocumentById`, `insertDocument`, `updateDocument`, `deleteDocument`, `deleteDocumentById` |
 | [`ScannedDocumentDao.kt`](../app/src/main/java/com/abdapps/scandocs/data/dao/ScannedDocumentDao.kt) | ⚠️ LEGACY | DAO completo para `scanned_documents`: CRUD + búsqueda + favoritos + filtro por fecha + estadísticas |
 
 ---
@@ -105,7 +105,7 @@ Mapa completo de cada archivo del proyecto: propósito, estado (activo/legacy/pl
 
 | Archivo | Estado | Descripción |
 |---|---|---|
-| [`FileService.kt`](../app/src/main/java/com/abdapps/scandocs/service/FileService.kt) | ✅ ACTIVO | I/O de archivos en `Documents/ScanDocsApp/`; crea intents de vista y compartición via FileProvider; `createThumbnail()` es un stub |
+| [`FileService.kt`](../app/src/main/java/com/abdapps/scandocs/service/FileService.kt) | ✅ ACTIVO | I/O de archivos en `Documents/ScanDocsApp/`; renombra, crea intents de vista y compartición vía FileProvider; `createThumbnail()` es un stub |
 
 **Métodos de `FileService`:**
 
@@ -113,6 +113,7 @@ Mapa completo de cada archivo del proyecto: propósito, estado (activo/legacy/pl
 saveJpgFile(imageUri, fileName)   → String  (@RequiresApi(O))
 savePdfFile(pdfUri, fileName)     → String  (@RequiresApi(O))
 deleteFile(filePath)              → Boolean
+renameFile(filePath, newBaseName) → String?
 getUriForFile(file)               → Uri?
 createViewIntent(ctx, path, mime) → Intent?
 createShareIntent(ctx, path, mime)→ Intent?
@@ -126,9 +127,9 @@ createThumbnail(jpgPath)          → String? [STUB]
 
 | Archivo | Estado | Pantalla / Rol | Composables públicos |
 |---|---|---|---|
-| [`DocumentScannerScreen.kt`](../app/src/main/java/com/abdapps/scandocs/ui/components/DocumentScannerScreen.kt) | ✅ ACTIVO | Pantalla Home (ruta `"home"`) | `DocumentScannerScreen`, `SaveDocumentDialog` |
-| [`HomeComponents.kt`](../app/src/main/java/com/abdapps/scandocs/ui/components/HomeComponents.kt) | ✅ ACTIVO | Bloques del Home | `HomeSearchBar`, `QuickActionsSection`, `RecentSectionHeader`, `CompactEmptyRecentState` |
-| [`HistoryScreen.kt`](../app/src/main/java/com/abdapps/scandocs/ui/components/HistoryScreen.kt) | ✅ ACTIVO | Pantalla historial (ruta `"history"`) + diálogos compartidos | `HistoryScreen`, `ChooseFileDialog`, `ConfirmDeleteDialog`, `HistoryEmptyState`, `SearchEmptyState` |
+| [`DocumentScannerScreen.kt`](../app/src/main/java/com/abdapps/scandocs/ui/components/DocumentScannerScreen.kt) | ✅ ACTIVO | Pantalla Home (ruta `"home"`); acciones Escanear y Documentos | `DocumentScannerScreen`, `SaveDocumentDialog` |
+| [`HomeComponents.kt`](../app/src/main/java/com/abdapps/scandocs/ui/components/HomeComponents.kt) | ✅ ACTIVO | Bloques del Home; no duplica la importación, disponible en ML Kit tras tocar Escanear | `HomeSearchBar`, `QuickActionsSection`, `RecentSectionHeader`, `CompactEmptyRecentState` |
+| [`HistoryScreen.kt`](../app/src/main/java/com/abdapps/scandocs/ui/components/HistoryScreen.kt) | ✅ ACTIVO | Pantalla historial (ruta `"history"`) + diálogos compartidos, incluido renombrado | `HistoryScreen`, `ChooseFileDialog`, `ConfirmDeleteDialog`, `RenameDocumentDialog`, `HistoryEmptyState`, `SearchEmptyState` |
 | [`DocumentItemCard.kt`](../app/src/main/java/com/abdapps/scandocs/ui/components/DocumentItemCard.kt) | ✅ ACTIVO | Tarjeta reutilizable de documento | `DocumentItemCard` |
 | [`ScannerComponents.kt`](../app/src/main/java/com/abdapps/scandocs/ui/components/ScannerComponents.kt) | 🔲 PLACEHOLDER | Archivo vacío (reemplazado por `DocumentScannerScreen.kt`) | — |
 | [`FileNameDialog.kt`](../app/src/main/java/com/abdapps/scandocs/ui/components/FileNameDialog.kt) | 🔲 PLACEHOLDER | Archivo vacío (diálogo consolidado en `DocumentScannerScreen.kt`) | — |
